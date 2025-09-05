@@ -1,0 +1,14 @@
+{
+    "folders": [
+        {
+            "path": "frontend/cproom"
+,           "name": "frontend"
+        },
+        {
+            "path": "backend"
+        },
+        {
+            "path": "."
+        }
+    ]
+}
