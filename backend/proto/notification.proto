@@ -1,0 +1,67 @@
+syntax = "proto3";
+package notification;
+
+import "google/protobuf/timestamp.proto";
+option go_package = "github.com/JJnvn/Software-Arch-CPRoom/backend/proto;proto";
+
+
+service NotificationService {
+  rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse);
+  rpc ScheduleNotification(ScheduleNotificationRequest) returns (ScheduleNotificationResponse);
+  rpc GetNotificationHistory(GetNotificationHistoryRequest) returns (NotificationHistoryResponse);
+  rpc SetNotificationPreferences(SetNotificationPreferencesRequest) returns (Preferences);
+}
+
+enum NotificationType {
+  EMAIL = 0;
+  SMS = 1;
+  PUSH = 2;
+}
+
+message SendNotificationRequest {
+  string user_id = 1;
+  NotificationType type = 2;
+  string message = 3;
+}
+
+message SendNotificationResponse {
+  bool success = 1;
+}
+
+message ScheduleNotificationRequest {
+  string user_id = 1;
+  NotificationType type = 2;
+  string message = 3;
+  google.protobuf.Timestamp send_at = 4;
+}
+
+message ScheduleNotificationResponse {
+  string notification_id = 1;
+}
+
+message GetNotificationHistoryRequest {
+  string user_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message NotificationHistoryResponse {
+  repeated NotificationEntry entries = 1;
+}
+
+message NotificationEntry {
+  string notification_id = 1;
+  NotificationType type = 2;
+  string message = 3;
+  google.protobuf.Timestamp sent_at = 4;
+  bool success = 5;
+}
+
+message SetNotificationPreferencesRequest {
+  string user_id = 1;
+  Preferences prefs = 2;
+}
+
+message Preferences {
+  repeated NotificationType types = 1;
+}

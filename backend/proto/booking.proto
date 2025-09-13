@@ -1,0 +1,99 @@
+syntax = "proto3";
+package booking;
+
+import "google/protobuf/timestamp.proto";
+option go_package = "github.com/JJnvn/Software-Arch-CPRoom/backend/proto;proto";
+
+
+service BookingService {
+  rpc SearchRooms(SearchRoomsRequest) returns (SearchRoomsResponse);
+  rpc GetRoomSchedule(GetRoomScheduleRequest) returns (RoomScheduleResponse);
+  rpc CreateBooking(CreateBookingRequest) returns (CreateBookingResponse);
+  rpc CancelBooking(CancelBookingRequest) returns (CancelBookingResponse);
+  rpc UpdateBooking(UpdateBookingRequest) returns (UpdateBookingResponse);
+  rpc TransferBooking(TransferBookingRequest) returns (TransferBookingResponse);
+  rpc AdminListBookings(AdminListBookingsRequest) returns (AdminListBookingsResponse);
+}
+
+message SearchRoomsRequest {
+  google.protobuf.Timestamp start = 1;
+  google.protobuf.Timestamp end = 2;
+  int32 capacity = 3;
+  repeated string features = 4;
+  int32 page = 5;
+  int32 page_size = 6;
+}
+
+message RoomInfo {
+  string room_id = 1;
+  string name = 2;
+  int32 capacity = 3;
+  repeated string features = 4;
+}
+
+message SearchRoomsResponse {
+  repeated RoomInfo rooms = 1;
+}
+
+message GetRoomScheduleRequest {
+  string room_id = 1;
+}
+
+message RoomScheduleResponse {
+  string room_id = 1;
+  repeated BookingSummary bookings = 2;
+}
+
+message CreateBookingRequest {
+  string user_id = 1;
+  string room_id = 2;
+  google.protobuf.Timestamp start = 3;
+  google.protobuf.Timestamp end = 4;
+}
+
+message CreateBookingResponse {
+  string booking_id = 1;
+}
+
+message CancelBookingRequest {
+  string booking_id = 1;
+}
+
+message CancelBookingResponse {
+  bool success = 1;
+}
+
+message UpdateBookingRequest {
+  string booking_id = 1;
+  google.protobuf.Timestamp new_start = 2;
+  google.protobuf.Timestamp new_end = 3;
+}
+
+message UpdateBookingResponse {
+  bool success = 1;
+}
+
+message TransferBookingRequest {
+  string booking_id = 1;
+  string new_owner_id = 2;
+}
+
+message TransferBookingResponse {
+  bool success = 1;
+}
+
+message AdminListBookingsRequest {
+  string room_id = 1;
+}
+
+message AdminListBookingsResponse {
+  repeated BookingSummary bookings = 1;
+}
+
+message BookingSummary {
+  string booking_id = 1;
+  string user_id = 2;
+  google.protobuf.Timestamp start = 3;
+  google.protobuf.Timestamp end = 4;
+  string status = 5;
+}
