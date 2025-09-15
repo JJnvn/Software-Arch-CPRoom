@@ -5,11 +5,11 @@ import (
 )
 
 type AuthHandler struct {
-	authService *AuthService
+	service *AuthService
 }
 
-func NewAuthHandler(s *AuthService) *AuthHandler {
-	return &AuthHandler{authService: s}
+func NewAuthHandler(service *AuthService) *AuthHandler {
+	return &AuthHandler{service: service}
 }
 
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
@@ -18,14 +18,16 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
+
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": "invalid request"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request"})
 	}
-	user, err := h.authService.Register(req.Name, req.Email, req.Password)
-	if err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+
+	if err := h.service.Register(req.Name, req.Email, req.Password); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	return c.JSON(user)
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "user registered"})
 }
 
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
@@ -33,24 +35,15 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": "invalid request"})
-	}
-	token, err := h.authService.Login(req.Email, req.Password)
-	if err != nil {
-		return c.Status(401).JSON(fiber.Map{"error": err.Error()})
-	}
-	return c.JSON(fiber.Map{"token": token})
-}
 
-func (h *AuthHandler) ValidateToken(c *fiber.Ctx) error {
-	token := c.Get("Authorization")
-	if token == "" {
-		return c.Status(401).JSON(fiber.Map{"error": "missing token"})
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request"})
 	}
-	claims, err := h.authService.ValidateToken(token)
+
+	user, err := h.service.Login(req.Email, req.Password)
 	if err != nil {
-		return c.Status(401).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
 	}
-	return c.JSON(claims)
+
+	return c.JSON(fiber.Map{"id": user.ID, "email": user.Email, "name": user.Name})
 }

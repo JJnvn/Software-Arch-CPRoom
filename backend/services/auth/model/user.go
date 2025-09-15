@@ -1,8 +1,12 @@
 package model
 
+import "time"
+
 type User struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"-"`
+	ID        string `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
+	Name      string `gorm:"size:100;not null" json:"name"`
+	Email     string `gorm:"uniqueIndex;size:100;not null" json:"email"`
+	Password  string `gorm:"not null" json:"-"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
