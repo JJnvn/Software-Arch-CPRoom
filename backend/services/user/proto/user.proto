@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "github.com/JJnvn/Software-Arch-CPRoom/backend/proto;proto";
+
+service UserService {
+  // Authentication
+  // rpc Register(RegisterRequest) returns (AuthResponse);
+  // rpc Login(LoginRequest) returns (AuthResponse);
+  // rpc Logout(LogoutRequest) returns (EmptyResponse);
+
+  // Profile
+  rpc GetProfile(GetProfileRequest) returns (UserProfile);
+  rpc UpdateProfile(UpdateProfileRequest) returns (UserProfile);
+
+  // Booking History
+  rpc GetBookingHistory(GetBookingHistoryRequest) returns (BookingHistoryResponse);
+
+  // Preferences
+  rpc GetPreferences(GetPreferencesRequest) returns (UserPreferences);
+  rpc UpdatePreferences(UpdatePreferencesRequest) returns (UserPreferences);
+}
+
+message RegisterRequest {
+  string name = 1;
+  string email = 2;
+  string password = 3;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message AuthResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
+message LogoutRequest {
+  string user_id = 1;
+}
+
+message GetProfileRequest {
+  string user_id = 1;
+}
+
+message UpdateProfileRequest {
+  string user_id = 1;
+  string name = 2;
+  string email = 3;
+  string language = 4;
+}
+
+message UserProfile {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  string language = 4;
+}
+
+message GetBookingHistoryRequest {
+  string user_id = 1;
+}
+
+message BookingHistoryResponse {
+  repeated BookingItem bookings = 1;
+}
+
+message BookingItem {
+  string booking_id = 1;
+  string room_name = 2;
+  string start_time = 3;
+  string end_time = 4;
+  string status = 5;
+}
+
+message GetPreferencesRequest {
+  string user_id = 1;
+}
+
+message UpdatePreferencesRequest {
+  string user_id = 1;
+  string notification_type = 2;
+  string language = 3;
+}
+
+message UserPreferences {
+  string notification_type = 1;
+  string language = 2;
+}
+
+message EmptyResponse {}

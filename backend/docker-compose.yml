@@ -3,15 +3,20 @@ services:
     image: postgres:15
     container_name: postgres-cproom
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password123
-      POSTGRES_DB: auth_db
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - cproom_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   auth-service:
     build: ./services/auth
@@ -25,27 +30,64 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
     ports:
-      - "8081:8081"
+      - "${AUTH_SERVICE_PORT}:8081"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - cproom_net
 
-  room-service:
-    build: ./services/room
-    container_name: cproom-room-service
-    env_file:
-      - .env
+  booking-service:
+    build: ./services/booking
+    container_name: cproom-booking-service
     environment:
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
+      BOOKING_SERVICE_PORT: ${BOOKING_SERVICE_PORT}
     ports:
-      - "8082:8082"
+      - "${BOOKING_SERVICE_PORT}:50051"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    networks:
+      - cproom_net
+
+  user-service:
+    build: ./services/user
+    container_name: cproom-user-service
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      USER_SERVICE_PORT: ${USER_SERVICE_PORT}  # internal gRPC port in container
+    ports:
+      - "${USER_SERVICE_PORT}:50052"  # unique host port, container port can stay 50052
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cproom_net
+
+  room-service:
+    build: ./services/room
+    container_name: cproom-room-service
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      ROOM_SERVICE_PORT: ${ROOM_SERVICE_PORT}
+    ports:
+      - "${ROOM_SERVICE_PORT}:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - cproom_net
 
