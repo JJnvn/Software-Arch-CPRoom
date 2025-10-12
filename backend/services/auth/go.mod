@@ -6,6 +6,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/joho/godotenv v1.5.1
 	golang.org/x/crypto v0.39.0
+	golang.org/x/oauth2 v0.32.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.0
 )

@@ -18,6 +18,9 @@ FROM debian:bookworm-slim
 
 WORKDIR /root/
 
+# Install CA certificates so Go can verify HTTPS
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+
 # Copy binary from builder
 COPY --from=builder /app/auth-service .
 
