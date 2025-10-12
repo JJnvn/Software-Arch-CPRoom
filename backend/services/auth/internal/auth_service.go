@@ -6,7 +6,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/model"
+	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/models"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 )
@@ -33,7 +33,7 @@ func (s *AuthService) Register(name, email, password string) error {
 		return err
 	}
 
-	user := &model.User{
+	user := &models.User{
 		Name:     name,
 		Email:    email,
 		Password: string(hashed),
@@ -42,7 +42,7 @@ func (s *AuthService) Register(name, email, password string) error {
 	return s.repo.CreateUser(user)
 }
 
-func (s *AuthService) Login(email, password string) (*model.User, error) {
+func (s *AuthService) Login(email, password string) (*models.User, error) {
 	user, err := s.repo.FindByEmail(email)
 	if err != nil {
 		return nil, errors.New("invalid email or password")
@@ -55,7 +55,7 @@ func (s *AuthService) Login(email, password string) (*model.User, error) {
 	return user, nil
 }
 
-func (s *AuthService) HandleGitHubCallback(code string) (*model.User, error) {
+func (s *AuthService) HandleGitHubCallback(code string) (*models.User, error) {
 	ctx := context.Background()
 	token, err := s.oauthCfg.Exchange(ctx, code)
 	if err != nil {
@@ -89,7 +89,7 @@ func (s *AuthService) HandleGitHubCallback(code string) (*model.User, error) {
 		return user, nil
 	}
 
-	newUser := &model.User{
+	newUser := &models.User{
 		Name:  ghUser.Name,
 		Email: email,
 	}
@@ -100,6 +100,6 @@ func (s *AuthService) HandleGitHubCallback(code string) (*model.User, error) {
 	return newUser, nil
 }
 
-func (s *AuthService) GetByEmail(email string) (*model.User, error) {
+func (s *AuthService) GetByEmail(email string) (*models.User, error) {
 	return s.repo.FindByEmail(email)
 }

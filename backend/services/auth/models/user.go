@@ -1,4 +1,4 @@
-package model
+package models
 
 import "time"
 
@@ -11,4 +11,4 @@ type User struct {
 	UpdatedAt time.Time
 }
 
-const TOKEN = "JWT_TOKEN"
+const TOKEN = "AUTH_TOKEN"

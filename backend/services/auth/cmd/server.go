@@ -2,16 +2,13 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/config"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/internal"
-	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/model"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/github"
+	model "github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/models"
 )
 
 func main() {
@@ -24,14 +21,7 @@ func main() {
 	db := config.ConnectDB()
 	db.AutoMigrate(&model.User{})
 
-	// Oauth Config
-	oauthCfg := &oauth2.Config{
-		ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
-		ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
-		RedirectURL:  os.Getenv("GITHUB_REDIRECT_URL"),
-		Scopes:       []string{"user:email"},
-		Endpoint:     github.Endpoint,
-	}
+	oauthCfg := config.GitHubOauthConfig()
 
 	// Layers
 	repo := internal.NewAuthRepository(db)

@@ -3,7 +3,7 @@ package internal
 import (
 	"time"
 
-	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/model"
+	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/models"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/oauth2"
 )
@@ -77,7 +77,7 @@ func (h *AuthHandler) GitHubCallback(c *fiber.Ctx) error {
 
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	c.Cookie(&fiber.Cookie{
-		Name:     model.TOKEN,
+		Name:     models.TOKEN,
 		Value:    "",
 		HTTPOnly: true,
 		SameSite: "Lax",
@@ -88,7 +88,7 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) MyProfile(c *fiber.Ctx) error {
-	email := c.Cookies(model.TOKEN)
+	email := c.Cookies(models.TOKEN)
 	if email == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "not logged in"})
 	}
@@ -107,7 +107,7 @@ func (h *AuthHandler) MyProfile(c *fiber.Ctx) error {
 
 func (h *AuthHandler) setAuthCookie(c *fiber.Ctx, email string) {
 	c.Cookie(&fiber.Cookie{
-		Name:     model.TOKEN,
+		Name:     models.TOKEN,
 		Value:    email,
 		HTTPOnly: true,
 		SameSite: "Lax",
