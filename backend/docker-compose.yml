@@ -55,23 +55,23 @@ services:
     networks:
       - cproom_net
 
-  # user-service:
-  #   build: ./services/user
-  #   container_name: cproom-user-service
-  #   environment:
-  #     DB_HOST: ${DB_HOST}
-  #     DB_PORT: ${DB_PORT}
-  #     DB_USER: ${DB_USER}
-  #     DB_PASSWORD: ${DB_PASSWORD}
-  #     DB_NAME: ${DB_NAME}
-  #     USER_SERVICE_PORT: ${USER_SERVICE_PORT}  # internal gRPC port in container
-  #   ports:
-  #     - "${USER_SERVICE_PORT}:50052"  # unique host port, container port can stay 50052
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   networks:
-  #     - cproom_net
+  user-service:
+    build: ./services/user
+    container_name: cproom-user-service
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      USER_SERVICE_PORT: ${USER_SERVICE_PORT}  # internal gRPC port in container
+    ports:
+      - "${USER_SERVICE_PORT}:50052"  # unique host port, container port can stay 50052
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cproom_net
 
   room-service:
     build: ./services/room
