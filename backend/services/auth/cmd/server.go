@@ -8,7 +8,7 @@ import (
 
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/config"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/internal"
-	model "github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/models"
+	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/models"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 
 	// DB
 	db := config.ConnectDB()
-	db.AutoMigrate(&model.User{})
+	db.AutoMigrate(&models.User{})
 
 	oauthCfg := config.GitHubOauthConfig()
 
