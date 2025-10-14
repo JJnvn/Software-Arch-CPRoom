@@ -92,37 +92,51 @@ func (s *NotificationService) SendNotification(ctx context.Context, userID, noti
 		return err
 	}
 
-	payload := bson.M{
-		"user_id":  userID,
-		"type":     notifType,
-		"channel":  channel,
-		"message":  message,
-		"metadata": metadata,
-		"sent_at":  s.clock().UTC(),
+	if metadata == nil {
+		metadata = make(map[string]any)
 	}
 
-	status := "sent"
-	if err := s.publish(payload); err != nil {
-		log.Printf("publish notification failed, storing as pending: %v", err)
-		status = "pending"
-	}
-
+	docID := primitive.NewObjectID()
+	sentAt := s.clock().UTC()
 	doc := models.NotificationHistory{
+		ID:       docID,
 		UserID:   userID,
 		Type:     notifType,
 		Message:  message,
 		Channel:  channel,
-		SentAt:   s.clock().UTC(),
-		Status:   status,
+		SentAt:   sentAt,
+		Status:   "queued",
 		Metadata: metadata,
 	}
+
 	if _, err := s.historyCol.InsertOne(ctx, doc); err != nil {
 		return err
 	}
 
-	if status != "sent" {
-		return errors.New("notification publish failed")
+	payload := bson.M{
+		"history_id": docID.Hex(),
+		"user_id":    userID,
+		"type":       notifType,
+		"channel":    channel,
+		"message":    message,
+		"metadata":   metadata,
+		"sent_at":    sentAt,
 	}
+
+	if err := s.publish(payload); err != nil {
+		log.Printf("publish notification failed, marking history as failed: %v", err)
+		update := bson.M{
+			"$set": bson.M{
+				"status":  "failed",
+				"sent_at": s.clock().UTC(),
+			},
+		}
+		if _, uErr := s.historyCol.UpdateByID(ctx, docID, update); uErr != nil {
+			log.Printf("failed to update history status: %v", uErr)
+		}
+		return err
+	}
+
 	return nil
 }
 
@@ -135,6 +149,9 @@ func (s *NotificationService) ScheduleNotification(ctx context.Context, userID, 
 	}
 	if err := s.ensureChannelAllowed(ctx, userID, channel); err != nil {
 		return primitive.NilObjectID, err
+	}
+	if metadata == nil {
+		metadata = make(map[string]any)
 	}
 
 	doc := models.ScheduledNotification{
@@ -205,30 +222,38 @@ func (s *NotificationService) ProcessDueNotifications(ctx context.Context) error
 			return err
 		}
 
+		if sched.Metadata == nil {
+			sched.Metadata = make(map[string]any)
+		}
+
+		historyID, err := s.logHistory(ctx, sched)
+		if err != nil {
+			return err
+		}
+
 		payload := bson.M{
-			"user_id":  sched.UserID,
-			"type":     sched.Type,
-			"channel":  sched.Channel,
-			"message":  sched.Message,
-			"metadata": sched.Metadata,
-			"send_at":  sched.SendAt,
+			"history_id":  historyID.Hex(),
+			"user_id":     sched.UserID,
+			"type":        sched.Type,
+			"channel":     sched.Channel,
+			"message":     sched.Message,
+			"metadata":    sched.Metadata,
+			"send_at":     sched.SendAt,
+			"schedule_id": sched.ID.Hex(),
 		}
 
 		if err := s.publish(payload); err != nil {
-			return err
+			log.Printf("failed to publish scheduled notification: %v", err)
+			if hErr := s.updateHistoryStatus(ctx, historyID, "failed"); hErr != nil {
+				log.Printf("failed to update history for scheduled notification: %v", hErr)
+			}
+			if sErr := s.updateScheduleStatus(ctx, sched.ID, "failed"); sErr != nil {
+				log.Printf("failed to update schedule status: %v", sErr)
+			}
+			continue
 		}
 
-		if err := s.logHistory(ctx, sched); err != nil {
-			return err
-		}
-
-		update := bson.M{
-			"$set": bson.M{
-				"status":     "sent",
-				"updated_at": now,
-			},
-		}
-		if _, err := s.scheduleCol.UpdateByID(ctx, sched.ID, update); err != nil {
+		if err := s.updateScheduleStatus(ctx, sched.ID, "queued"); err != nil {
 			return err
 		}
 	}
@@ -236,18 +261,66 @@ func (s *NotificationService) ProcessDueNotifications(ctx context.Context) error
 	return cursor.Err()
 }
 
-func (s *NotificationService) logHistory(ctx context.Context, sched models.ScheduledNotification) error {
+func (s *NotificationService) logHistory(ctx context.Context, sched models.ScheduledNotification) (primitive.ObjectID, error) {
+	docID := primitive.NewObjectID()
 	doc := models.NotificationHistory{
+		ID:       docID,
 		UserID:   sched.UserID,
 		Type:     sched.Type,
 		Message:  sched.Message,
 		Channel:  sched.Channel,
 		SentAt:   s.clock().UTC(),
-		Status:   "sent",
+		Status:   "queued",
 		Metadata: sched.Metadata,
 	}
-	_, err := s.historyCol.InsertOne(ctx, doc)
+	if _, err := s.historyCol.InsertOne(ctx, doc); err != nil {
+		return primitive.NilObjectID, err
+	}
+	return docID, nil
+}
+
+func (s *NotificationService) updateHistoryStatus(ctx context.Context, id primitive.ObjectID, status string) error {
+	updateFields := bson.M{
+		"status": status,
+	}
+	if status == "sent" || status == "failed" {
+		updateFields["sent_at"] = s.clock().UTC()
+	}
+	_, err := s.historyCol.UpdateByID(ctx, id, bson.M{"$set": updateFields})
 	return err
+}
+
+func (s *NotificationService) UpdateHistoryStatus(ctx context.Context, idHex, status string) error {
+	if idHex == "" {
+		return errors.New("history_id is required")
+	}
+	historyID, err := primitive.ObjectIDFromHex(idHex)
+	if err != nil {
+		return err
+	}
+	return s.updateHistoryStatus(ctx, historyID, status)
+}
+
+func (s *NotificationService) updateScheduleStatus(ctx context.Context, id primitive.ObjectID, status string) error {
+	update := bson.M{
+		"$set": bson.M{
+			"status":     status,
+			"updated_at": s.clock().UTC(),
+		},
+	}
+	_, err := s.scheduleCol.UpdateByID(ctx, id, update)
+	return err
+}
+
+func (s *NotificationService) UpdateScheduleStatus(ctx context.Context, idHex, status string) error {
+	if idHex == "" {
+		return errors.New("schedule_id is required")
+	}
+	scheduleID, err := primitive.ObjectIDFromHex(idHex)
+	if err != nil {
+		return err
+	}
+	return s.updateScheduleStatus(ctx, scheduleID, status)
 }
 
 func (s *NotificationService) ensureChannelAllowed(ctx context.Context, userID string, channel models.Channel) error {

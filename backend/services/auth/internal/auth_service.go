@@ -103,3 +103,7 @@ func (s *AuthService) HandleGitHubCallback(code string) (*models.User, error) {
 func (s *AuthService) GetByEmail(email string) (*models.User, error) {
 	return s.repo.FindByEmail(email)
 }
+
+func (s *AuthService) GetByID(id string) (*models.User, error) {
+	return s.repo.FindByID(id)
+}

@@ -40,7 +40,9 @@ func main() {
 	app.Get("/auth/github/callback", handler.GitHubCallback)
 
 	app.Get("/auth/logout", handler.Logout)
+	app.Get("/auth/validate", handler.Validate)
 	app.Get("/auth/my-profile", handler.MyProfile)
+	app.Get("/auth/users/:id", handler.GetUserByID)
 
 	log.Println("Auth service running on :8081")
 	if err := app.Listen(":8081"); err != nil {

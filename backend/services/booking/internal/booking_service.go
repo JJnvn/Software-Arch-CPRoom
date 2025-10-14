@@ -227,6 +227,7 @@ func (s *BookingService) notifyBookingTransferred(ctx context.Context, booking *
 func bookingMetadata(booking *models.Booking) map[string]any {
 	return map[string]any{
 		"booking_id": booking.ID.String(),
+		"user_id":    booking.UserID.String(),
 		"room_id":    booking.RoomID.String(),
 		"start_time": booking.StartTime.UTC().Format(time.RFC3339),
 		"end_time":   booking.EndTime.UTC().Format(time.RFC3339),

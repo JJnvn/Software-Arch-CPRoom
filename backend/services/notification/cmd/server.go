@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -38,6 +39,28 @@ func main() {
 	service := internal.NewNotificationService(mongoRes.Database, rabbitRes.Channel, rabbitRes.QueueName)
 	handler := internal.NewNotificationHandler(service)
 
+	consumerCh, err := rabbitRes.Connection.Channel()
+	if err != nil {
+		log.Fatalf("RabbitMQ consumer channel failed: %v", err)
+	}
+	defer consumerCh.Close()
+
+	emailSender := resolveEmailSender()
+	resolver := resolveUserResolver()
+	if emailSender == nil {
+		log.Println("SMTP configuration missing; email delivery disabled")
+	}
+
+	dispatcher := internal.NewDispatcher(
+		service,
+		consumerCh,
+		rabbitRes.QueueName,
+		emailSender,
+		resolver,
+		os.Getenv("NOTIFICATION_DEFAULT_EMAIL"),
+	)
+	go dispatcher.Start(ctx)
+
 	scheduler := internal.NewScheduler(service, time.Minute)
 	go scheduler.Start(ctx)
 
@@ -57,6 +80,34 @@ func main() {
 	}()
 
 	waitForShutdown(cancel, app)
+}
+
+func resolveEmailSender() *internal.EmailSender {
+	host := os.Getenv("SMTP_HOST")
+	portStr := os.Getenv("SMTP_PORT")
+	from := os.Getenv("SMTP_FROM")
+	if host == "" || portStr == "" || from == "" {
+		return nil
+	}
+
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		log.Printf("invalid SMTP_PORT value %q: %v", portStr, err)
+		return nil
+	}
+
+	username := os.Getenv("SMTP_USERNAME")
+	password := os.Getenv("SMTP_PASSWORD")
+
+	return internal.NewEmailSender(host, port, username, password, from)
+}
+
+func resolveUserResolver() *internal.UserResolver {
+	baseURL := os.Getenv("AUTH_SERVICE_URL")
+	if baseURL == "" {
+		baseURL = "http://auth-service:8081"
+	}
+	return internal.NewUserResolver(baseURL)
 }
 
 func waitForShutdown(cancel context.CancelFunc, app *fiber.App) {

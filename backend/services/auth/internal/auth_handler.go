@@ -105,6 +105,24 @@ func (h *AuthHandler) MyProfile(c *fiber.Ctx) error {
 	})
 }
 
+func (h *AuthHandler) Validate(c *fiber.Ctx) error {
+	email := c.Cookies(models.TOKEN)
+	if email == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "not logged in"})
+	}
+
+	user, err := h.service.GetByEmail(email)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "user not found"})
+	}
+
+	return c.JSON(fiber.Map{
+		"id":    user.ID,
+		"name":  user.Name,
+		"email": user.Email,
+	})
+}
+
 func (h *AuthHandler) setAuthCookie(c *fiber.Ctx, email string) {
 	c.Cookie(&fiber.Cookie{
 		Name:     models.TOKEN,
@@ -113,5 +131,23 @@ func (h *AuthHandler) setAuthCookie(c *fiber.Ctx, email string) {
 		SameSite: "Lax",
 		Secure:   false,
 		Expires:  time.Now().Add(7 * 24 * time.Hour), // 7 days
+	})
+}
+
+func (h *AuthHandler) GetUserByID(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "missing user id"})
+	}
+
+	user, err := h.service.GetByID(id)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "user not found"})
+	}
+
+	return c.JSON(fiber.Map{
+		"id":    user.ID,
+		"name":  user.Name,
+		"email": user.Email,
 	})
 }
