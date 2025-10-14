@@ -18,6 +18,20 @@ services:
       timeout: 5s
       retries: 5
 
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin-cproom
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cproom_net
+
   mongo:
     image: mongo:7
     container_name: mongo-cproom
@@ -43,6 +57,21 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  mongo-express:
+    image: mongo-express:1.0.2-20-alpine3.18
+    container_name: mongo-express-cproom
+    environment:
+      ME_CONFIG_MONGODB_URL: ${MONGO_URI}
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USER}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD}
+    ports:
+      - "${MONGO_EXPRESS_PORT:-8086}:8081"
+    depends_on:
+      mongo:
+        condition: service_started
+    networks:
+      - cproom_net
 
   auth-service:
     build:
