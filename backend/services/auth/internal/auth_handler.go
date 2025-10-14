@@ -34,6 +34,24 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "user registered"})
 }
 
+func (h *AuthHandler) RegisterAdmin(c *fiber.Ctx) error {
+	var req struct {
+		Name     string `json:"name"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request"})
+	}
+
+	if err := h.service.RegisterAdmin(req.Name, req.Email, req.Password); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "admin registered"})
+}
+
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	var req struct {
 		Email    string `json:"email"`
@@ -51,7 +69,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	h.setAuthCookie(c, user.Email)
 
-	return c.JSON(fiber.Map{"id": user.ID, "email": user.Email, "name": user.Name})
+	return c.JSON(fiber.Map{"id": user.ID, "email": user.Email, "name": user.Name, "role": user.Role})
 }
 
 func (h *AuthHandler) GitHubLogin(c *fiber.Ctx) error {
@@ -102,6 +120,7 @@ func (h *AuthHandler) MyProfile(c *fiber.Ctx) error {
 		"id":    user.ID,
 		"name":  user.Name,
 		"email": user.Email,
+		"role":  user.Role,
 	})
 }
 
@@ -120,6 +139,7 @@ func (h *AuthHandler) Validate(c *fiber.Ctx) error {
 		"id":    user.ID,
 		"name":  user.Name,
 		"email": user.Email,
+		"role":  user.Role,
 	})
 }
 

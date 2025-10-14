@@ -1,6 +1,7 @@
 package internal
 
 import (
+	middleware "github.com/JJnvn/Software-Arch-CPRoom/backend/libs/middleware"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/room/models"
 	"github.com/google/uuid"
 
@@ -18,9 +19,11 @@ func NewRoomHandler(service *roomService) *RoomHandler {
 func (h *RoomHandler) RegisterRoutes(app *fiber.App) {
 	app.Get("/rooms", h.ListRooms)
 	app.Get("/rooms/:id", h.GetRoom)
-	app.Post("/rooms", h.CreateRoom)
-	app.Put("/rooms/:id", h.UpdateRoom)
-	app.Delete("/rooms/:id", h.DeleteRoom)
+
+	protected := app.Group("/rooms", middleware.AuthMiddleware())
+	protected.Post("", h.CreateRoom)
+	protected.Put(":id", h.UpdateRoom)
+	protected.Delete(":id", h.DeleteRoom)
 }
 
 func (h *RoomHandler) CreateRoom(c *fiber.Ctx) error {

@@ -15,6 +15,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
+import (
+	middleware "github.com/JJnvn/Software-Arch-CPRoom/backend/libs/middleware"
+)
+
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using system env")
@@ -65,6 +69,7 @@ func main() {
 	go scheduler.Start(ctx)
 
 	app := fiber.New()
+	app.Use(middleware.AuthMiddleware())
 	handler.RegisterRoutes(app)
 
 	port := os.Getenv("NOTIFICATION_SERVICE_PORT")

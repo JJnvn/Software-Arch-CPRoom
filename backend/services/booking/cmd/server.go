@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 
+	middleware "github.com/JJnvn/Software-Arch-CPRoom/backend/libs/middleware"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/booking/config"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/booking/internal"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/booking/models"
@@ -39,6 +40,7 @@ func main() {
 
 	go func() {
 		app := fiber.New()
+		app.Use(middleware.AuthMiddleware())
 		app.Post("/bookings", handler.CreateBooking)
 
 		log.Printf("Booking HTTP server running on :%s", httpPort)

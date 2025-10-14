@@ -34,6 +34,7 @@ func main() {
 	// noob login
 	app.Post("/auth/register", handler.Register)
 	app.Post("/auth/login", handler.Login)
+	app.Post("/auth/register-admin", handler.RegisterAdmin)
 
 	// github login
 	app.Get("/auth/github/login", handler.GitHubLogin)

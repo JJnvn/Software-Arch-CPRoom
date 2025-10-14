@@ -27,6 +27,14 @@ func NewAuthService(
 }
 
 func (s *AuthService) Register(name, email, password string) error {
+	return s.registerWithRole(name, email, password, "user")
+}
+
+func (s *AuthService) RegisterAdmin(name, email, password string) error {
+	return s.registerWithRole(name, email, password, "admin")
+}
+
+func (s *AuthService) registerWithRole(name, email, password, role string) error {
 	// hash password
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -37,6 +45,7 @@ func (s *AuthService) Register(name, email, password string) error {
 		Name:     name,
 		Email:    email,
 		Password: string(hashed),
+		Role:     role,
 	}
 
 	return s.repo.CreateUser(user)
