@@ -2,6 +2,9 @@ package internal
 
 import (
 	"context"
+	"fmt"
+	"log"
+	"time"
 
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/booking/models"
 	pb "github.com/JJnvn/Software-Arch-CPRoom/backend/services/booking/proto"
@@ -10,12 +13,13 @@ import (
 )
 
 type BookingService struct {
-	repo *BookingRepository
+	repo     *BookingRepository
+	notifier *Notifier
 	pb.UnimplementedBookingServiceServer
 }
 
-func NewBookingService(repo *BookingRepository) *BookingService {
-	return &BookingService{repo: repo}
+func NewBookingService(repo *BookingRepository, notifier *Notifier) *BookingService {
+	return &BookingService{repo: repo, notifier: notifier}
 }
 
 func (s *BookingService) CreateBooking(ctx context.Context, req *pb.CreateBookingRequest) (*pb.CreateBookingResponse, error) {
@@ -32,6 +36,8 @@ func (s *BookingService) CreateBooking(ctx context.Context, req *pb.CreateBookin
 	if err := s.repo.Create(booking); err != nil {
 		return nil, err
 	}
+
+	s.notifyBookingCreated(ctx, booking)
 
 	return &pb.CreateBookingResponse{
 		BookingId: booking.ID.String(),
@@ -72,9 +78,16 @@ func (s *BookingService) CancelBooking(ctx context.Context, req *pb.CancelBookin
 		return nil, err
 	}
 
+	booking, err := s.repo.FindByID(id)
+	if err != nil {
+		return &pb.CancelBookingResponse{Success: false}, err
+	}
+
 	if err := s.repo.CancelBooking(id); err != nil {
 		return &pb.CancelBookingResponse{Success: false}, err
 	}
+	booking.Status = "cancelled"
+	s.notifyBookingCancelled(ctx, booking)
 	return &pb.CancelBookingResponse{Success: true}, nil
 }
 
@@ -84,10 +97,21 @@ func (s *BookingService) UpdateBooking(ctx context.Context, req *pb.UpdateBookin
 		return nil, err
 	}
 
-	err = s.repo.UpdateBooking(id, req.NewStart.AsTime(), req.NewEnd.AsTime())
+	booking, err := s.repo.FindByID(id)
 	if err != nil {
 		return &pb.UpdateBookingResponse{Success: false}, err
 	}
+
+	newStart := req.NewStart.AsTime()
+	newEnd := req.NewEnd.AsTime()
+
+	err = s.repo.UpdateBooking(id, newStart, newEnd)
+	if err != nil {
+		return &pb.UpdateBookingResponse{Success: false}, err
+	}
+	booking.StartTime = newStart
+	booking.EndTime = newEnd
+	s.notifyBookingUpdated(ctx, booking)
 	return &pb.UpdateBookingResponse{Success: true}, nil
 }
 
@@ -102,10 +126,17 @@ func (s *BookingService) TransferBooking(ctx context.Context, req *pb.TransferBo
 		return nil, err
 	}
 
+	booking, err := s.repo.FindByID(id)
+	if err != nil {
+		return &pb.TransferBookingResponse{Success: false}, err
+	}
+
 	err = s.repo.TransferBooking(id, newOwner)
 	if err != nil {
 		return &pb.TransferBookingResponse{Success: false}, err
 	}
+	booking.UserID = newOwner
+	s.notifyBookingTransferred(ctx, booking)
 	return &pb.TransferBookingResponse{Success: true}, nil
 }
 
@@ -131,4 +162,78 @@ func (s *BookingService) AdminListBookings(ctx context.Context, req *pb.AdminLis
 		})
 	}
 	return resp, nil
+}
+
+func (s *BookingService) notifyBookingCreated(ctx context.Context, booking *models.Booking) {
+	if s.notifier == nil {
+		return
+	}
+	metadata := bookingMetadata(booking)
+	message := fmt.Sprintf("Booking confirmed for room %s from %s to %s", booking.RoomID, formatTime(booking.StartTime), formatTime(booking.EndTime))
+	if err := s.notifier.SendImmediate(ctx, booking.UserID.String(), "booking_created", message, metadata); err != nil {
+		log.Printf("notification send failed: %v", err)
+	}
+
+	reminderTime := booking.StartTime.Add(-30 * time.Minute)
+	if reminderTime.After(time.Now()) {
+		reminderMsg := fmt.Sprintf("Reminder: room %s booking starts at %s", booking.RoomID, formatTime(booking.StartTime))
+		if err := s.notifier.Schedule(ctx, booking.UserID.String(), "booking_reminder", reminderMsg, reminderTime, metadata); err != nil {
+			log.Printf("schedule reminder failed: %v", err)
+		}
+	}
+}
+
+func (s *BookingService) notifyBookingUpdated(ctx context.Context, booking *models.Booking) {
+	if s.notifier == nil {
+		return
+	}
+	metadata := bookingMetadata(booking)
+	message := fmt.Sprintf("Booking updated for room %s. New time: %s - %s", booking.RoomID, formatTime(booking.StartTime), formatTime(booking.EndTime))
+	if err := s.notifier.SendImmediate(ctx, booking.UserID.String(), "booking_updated", message, metadata); err != nil {
+		log.Printf("notification send failed: %v", err)
+	}
+
+	reminderTime := booking.StartTime.Add(-30 * time.Minute)
+	if reminderTime.After(time.Now()) {
+		reminderMsg := fmt.Sprintf("Reminder: room %s booking now starts at %s", booking.RoomID, formatTime(booking.StartTime))
+		if err := s.notifier.Schedule(ctx, booking.UserID.String(), "booking_reminder", reminderMsg, reminderTime, metadata); err != nil {
+			log.Printf("schedule reminder failed: %v", err)
+		}
+	}
+}
+
+func (s *BookingService) notifyBookingCancelled(ctx context.Context, booking *models.Booking) {
+	if s.notifier == nil {
+		return
+	}
+	metadata := bookingMetadata(booking)
+	message := fmt.Sprintf("Booking for room %s on %s has been cancelled", booking.RoomID, formatTime(booking.StartTime))
+	if err := s.notifier.SendImmediate(ctx, booking.UserID.String(), "booking_cancelled", message, metadata); err != nil {
+		log.Printf("notification send failed: %v", err)
+	}
+}
+
+func (s *BookingService) notifyBookingTransferred(ctx context.Context, booking *models.Booking) {
+	if s.notifier == nil {
+		return
+	}
+	metadata := bookingMetadata(booking)
+	message := fmt.Sprintf("You have been assigned a booking for room %s on %s", booking.RoomID, formatTime(booking.StartTime))
+	if err := s.notifier.SendImmediate(ctx, booking.UserID.String(), "booking_transferred", message, metadata); err != nil {
+		log.Printf("notification send failed: %v", err)
+	}
+}
+
+func bookingMetadata(booking *models.Booking) map[string]any {
+	return map[string]any{
+		"booking_id": booking.ID.String(),
+		"room_id":    booking.RoomID.String(),
+		"start_time": booking.StartTime.UTC().Format(time.RFC3339),
+		"end_time":   booking.EndTime.UTC().Format(time.RFC3339),
+		"status":     booking.Status,
+	}
+}
+
+func formatTime(t time.Time) string {
+	return t.UTC().Format(time.RFC3339)
 }

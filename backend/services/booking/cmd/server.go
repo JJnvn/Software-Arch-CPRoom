@@ -25,7 +25,11 @@ func main() {
 
 	// Layers
 	repo := internal.NewBookingRepository(db)
-	service := internal.NewBookingService(repo)
+	notifier := internal.NewNotifier(
+		os.Getenv("NOTIFICATION_SERVICE_URL"),
+		os.Getenv("NOTIFICATION_CHANNEL"),
+	)
+	service := internal.NewBookingService(repo, notifier)
 	handler := internal.NewBookingHandler(service)
 
 	httpPort := os.Getenv("BOOKING_HTTP_PORT")

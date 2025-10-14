@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/notification/models"
@@ -100,8 +101,10 @@ func (s *NotificationService) SendNotification(ctx context.Context, userID, noti
 		"sent_at":  s.clock().UTC(),
 	}
 
+	status := "sent"
 	if err := s.publish(payload); err != nil {
-		return err
+		log.Printf("publish notification failed, storing as pending: %v", err)
+		status = "pending"
 	}
 
 	doc := models.NotificationHistory{
@@ -110,11 +113,17 @@ func (s *NotificationService) SendNotification(ctx context.Context, userID, noti
 		Message:  message,
 		Channel:  channel,
 		SentAt:   s.clock().UTC(),
-		Status:   "sent",
+		Status:   status,
 		Metadata: metadata,
 	}
-	_, err := s.historyCol.InsertOne(ctx, doc)
-	return err
+	if _, err := s.historyCol.InsertOne(ctx, doc); err != nil {
+		return err
+	}
+
+	if status != "sent" {
+		return errors.New("notification publish failed")
+	}
+	return nil
 }
 
 func (s *NotificationService) ScheduleNotification(ctx context.Context, userID, notifType, message string, channel models.Channel, sendAt time.Time, metadata map[string]any) (primitive.ObjectID, error) {
