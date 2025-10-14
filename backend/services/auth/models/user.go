@@ -7,8 +7,13 @@ type User struct {
 	Name      string `gorm:"size:100;not null" json:"name"`
 	Email     string `gorm:"uniqueIndex;size:100;not null" json:"email"`
 	Password  string `gorm:"not null" json:"-"`
+	Role      string `json:"role" gorm:"default:user"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
 
-const TOKEN = "AUTH_TOKEN"
+const (
+	TOKEN        = "AUTH_TOKEN"
+	USER  string = "USER"
+	ADMIN string = "ADMIN"
+)
