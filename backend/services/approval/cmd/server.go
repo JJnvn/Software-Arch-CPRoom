@@ -4,49 +4,47 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/approval/config"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/approval/internal"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/approval/models"
 
 	pb "github.com/JJnvn/Software-Arch-CPRoom/backend/services/approval/proto"
-	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 )
 
 func main() {
 	_ = godotenv.Load()
-	// DB
+
 	db := config.ConnectDB()
-	// Auto-migrate approval tables (not bookings)
-	if err := db.AutoMigrate(&models.Approval{}, &models.AuditEvent{}); err != nil {
-		log.Fatalf("auto-migrate failed: %v", err)
+	if err := db.AutoMigrate(&models.Booking{}, &models.AuditEvent{}); err != nil {
+		log.Fatalf("auto-migrate: %v", err)
 	}
 
-	repo := internal.NewApprovalRepository(db)
-	service := internal.NewApprovalService(repo)
+	repo := internal.NewGormApprovalRepo()
+	svc := internal.NewApprovalService(db, repo)
+	handler := internal.NewApprovalHandler(svc)
 
-	// HTTP (optional)
-	app := fiber.New()
-	app.Get("/health", func(c *fiber.Ctx) error { return c.SendString("ok") })
-	h := internal.NewApprovalHandler(service)
-	app.Post("/pending", h.ListPendingHTTP)
-	go func() {
-		port := os.Getenv("APPROVAL_HTTP_PORT")
-		if port == "" { port = "8082" }
-		log.Printf("Approval HTTP server on :%s", port)
-		if err := app.Listen(":" + port); err != nil { log.Fatalf("http listen: %v", err) }
-	}()
+	grpcSrv := grpc.NewServer()
+	pb.RegisterApprovalServiceServer(grpcSrv, handler)
 
-	// gRPC
-	grpcServer := grpc.NewServer()
-	pb.RegisterApprovalServiceServer(grpcServer, service)
+	addr := os.Getenv("APPROVAL_SERVICE_PORT")
+	if addr == "" {
+		addr = ":50053"
+	}
+	// accept either "50053" or ":50053"
+	if addr != "" && !strings.Contains(addr, ":") {
+		addr = ":" + addr
+	}
 
-	gport := os.Getenv("APPROVAL_SERVICE_PORT")
-	if gport == "" { gport = "50052" }
-	lis, err := net.Listen("tcp", ":"+gport)
-	if err != nil { log.Fatalf("failed to listen: %v", err) }
-	log.Printf("Approval gRPC server on :%s", gport)
-	if err := grpcServer.Serve(lis); err != nil { log.Fatalf("failed to serve: %v", err) }
+	lis, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatalf("listen: %v", err)
+	}
+	log.Printf("ApprovalService gRPC listening on %s", addr)
+	if err := grpcSrv.Serve(lis); err != nil {
+		log.Fatalf("serve: %v", err)
+	}
 }

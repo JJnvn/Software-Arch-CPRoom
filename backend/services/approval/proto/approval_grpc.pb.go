@@ -19,11 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ApprovalService_ListPending_FullMethodName      = "/approval.ApprovalService/ListPending"
-	ApprovalService_ApproveBooking_FullMethodName   = "/approval.ApprovalService/ApproveBooking"
-	ApprovalService_DenyBooking_FullMethodName      = "/approval.ApprovalService/DenyBooking"
-	ApprovalService_ReassignApprover_FullMethodName = "/approval.ApprovalService/ReassignApprover"
-	ApprovalService_GetAuditTrail_FullMethodName    = "/approval.ApprovalService/GetAuditTrail"
+	ApprovalService_ListPending_FullMethodName    = "/approval.ApprovalService/ListPending"
+	ApprovalService_AddToList_FullMethodName      = "/approval.ApprovalService/AddToList"
+	ApprovalService_ApproveBooking_FullMethodName = "/approval.ApprovalService/ApproveBooking"
+	ApprovalService_DenyBooking_FullMethodName    = "/approval.ApprovalService/DenyBooking"
+	ApprovalService_GetAuditTrail_FullMethodName  = "/approval.ApprovalService/GetAuditTrail"
 )
 
 // ApprovalServiceClient is the client API for ApprovalService service.
@@ -31,9 +31,9 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ApprovalServiceClient interface {
 	ListPending(ctx context.Context, in *ListPendingRequest, opts ...grpc.CallOption) (*ListPendingResponse, error)
+	AddToList(ctx context.Context, in *AddToListRequest, opts ...grpc.CallOption) (*AddToListResponse, error)
 	ApproveBooking(ctx context.Context, in *ApproveRequest, opts ...grpc.CallOption) (*ApproveResponse, error)
 	DenyBooking(ctx context.Context, in *DenyRequest, opts ...grpc.CallOption) (*DenyResponse, error)
-	ReassignApprover(ctx context.Context, in *ReassignRequest, opts ...grpc.CallOption) (*ReassignResponse, error)
 	GetAuditTrail(ctx context.Context, in *GetAuditTrailRequest, opts ...grpc.CallOption) (*AuditTrailResponse, error)
 }
 
@@ -49,6 +49,16 @@ func (c *approvalServiceClient) ListPending(ctx context.Context, in *ListPending
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListPendingResponse)
 	err := c.cc.Invoke(ctx, ApprovalService_ListPending_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *approvalServiceClient) AddToList(ctx context.Context, in *AddToListRequest, opts ...grpc.CallOption) (*AddToListResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddToListResponse)
+	err := c.cc.Invoke(ctx, ApprovalService_AddToList_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -75,16 +85,6 @@ func (c *approvalServiceClient) DenyBooking(ctx context.Context, in *DenyRequest
 	return out, nil
 }
 
-func (c *approvalServiceClient) ReassignApprover(ctx context.Context, in *ReassignRequest, opts ...grpc.CallOption) (*ReassignResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ReassignResponse)
-	err := c.cc.Invoke(ctx, ApprovalService_ReassignApprover_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *approvalServiceClient) GetAuditTrail(ctx context.Context, in *GetAuditTrailRequest, opts ...grpc.CallOption) (*AuditTrailResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AuditTrailResponse)
@@ -100,9 +100,9 @@ func (c *approvalServiceClient) GetAuditTrail(ctx context.Context, in *GetAuditT
 // for forward compatibility.
 type ApprovalServiceServer interface {
 	ListPending(context.Context, *ListPendingRequest) (*ListPendingResponse, error)
+	AddToList(context.Context, *AddToListRequest) (*AddToListResponse, error)
 	ApproveBooking(context.Context, *ApproveRequest) (*ApproveResponse, error)
 	DenyBooking(context.Context, *DenyRequest) (*DenyResponse, error)
-	ReassignApprover(context.Context, *ReassignRequest) (*ReassignResponse, error)
 	GetAuditTrail(context.Context, *GetAuditTrailRequest) (*AuditTrailResponse, error)
 	mustEmbedUnimplementedApprovalServiceServer()
 }
@@ -117,14 +117,14 @@ type UnimplementedApprovalServiceServer struct{}
 func (UnimplementedApprovalServiceServer) ListPending(context.Context, *ListPendingRequest) (*ListPendingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListPending not implemented")
 }
+func (UnimplementedApprovalServiceServer) AddToList(context.Context, *AddToListRequest) (*AddToListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddToList not implemented")
+}
 func (UnimplementedApprovalServiceServer) ApproveBooking(context.Context, *ApproveRequest) (*ApproveResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ApproveBooking not implemented")
 }
 func (UnimplementedApprovalServiceServer) DenyBooking(context.Context, *DenyRequest) (*DenyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DenyBooking not implemented")
-}
-func (UnimplementedApprovalServiceServer) ReassignApprover(context.Context, *ReassignRequest) (*ReassignResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReassignApprover not implemented")
 }
 func (UnimplementedApprovalServiceServer) GetAuditTrail(context.Context, *GetAuditTrailRequest) (*AuditTrailResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAuditTrail not implemented")
@@ -168,6 +168,24 @@ func _ApprovalService_ListPending_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ApprovalService_AddToList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddToListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ApprovalServiceServer).AddToList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ApprovalService_AddToList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ApprovalServiceServer).AddToList(ctx, req.(*AddToListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ApprovalService_ApproveBooking_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ApproveRequest)
 	if err := dec(in); err != nil {
@@ -204,24 +222,6 @@ func _ApprovalService_DenyBooking_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ApprovalService_ReassignApprover_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReassignRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ApprovalServiceServer).ReassignApprover(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ApprovalService_ReassignApprover_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ApprovalServiceServer).ReassignApprover(ctx, req.(*ReassignRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _ApprovalService_GetAuditTrail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetAuditTrailRequest)
 	if err := dec(in); err != nil {
@@ -252,16 +252,16 @@ var ApprovalService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ApprovalService_ListPending_Handler,
 		},
 		{
+			MethodName: "AddToList",
+			Handler:    _ApprovalService_AddToList_Handler,
+		},
+		{
 			MethodName: "ApproveBooking",
 			Handler:    _ApprovalService_ApproveBooking_Handler,
 		},
 		{
 			MethodName: "DenyBooking",
 			Handler:    _ApprovalService_DenyBooking_Handler,
-		},
-		{
-			MethodName: "ReassignApprover",
-			Handler:    _ApprovalService_ReassignApprover_Handler,
 		},
 		{
 			MethodName: "GetAuditTrail",

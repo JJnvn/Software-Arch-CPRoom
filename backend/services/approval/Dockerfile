@@ -22,7 +22,7 @@ WORKDIR /root/
 COPY --from=builder /app/approval-service .
 
 # Expose gRPC port
-EXPOSE 50052
+EXPOSE 50053
 
 # Run command
 CMD ["./approval-service"]

@@ -22,16 +22,129 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type AddToListRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Start         *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=start,proto3" json:"start,omitempty"`
+	End           *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=end,proto3" json:"end,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddToListRequest) Reset() {
+	*x = AddToListRequest{}
+	mi := &file_approval_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddToListRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddToListRequest) ProtoMessage() {}
+
+func (x *AddToListRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_approval_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddToListRequest.ProtoReflect.Descriptor instead.
+func (*AddToListRequest) Descriptor() ([]byte, []int) {
+	return file_approval_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *AddToListRequest) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+func (x *AddToListRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *AddToListRequest) GetStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Start
+	}
+	return nil
+}
+
+func (x *AddToListRequest) GetEnd() *timestamppb.Timestamp {
+	if x != nil {
+		return x.End
+	}
+	return nil
+}
+
+type AddToListResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BookingId     string                 `protobuf:"bytes,1,opt,name=booking_id,json=bookingId,proto3" json:"booking_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddToListResponse) Reset() {
+	*x = AddToListResponse{}
+	mi := &file_approval_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddToListResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddToListResponse) ProtoMessage() {}
+
+func (x *AddToListResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_approval_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddToListResponse.ProtoReflect.Descriptor instead.
+func (*AddToListResponse) Descriptor() ([]byte, []int) {
+	return file_approval_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *AddToListResponse) GetBookingId() string {
+	if x != nil {
+		return x.BookingId
+	}
+	return ""
+}
+
 type ListPendingRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	StaffId       string                 `protobuf:"bytes,1,opt,name=staff_id,json=staffId,proto3" json:"staff_id,omitempty"`
+	PageSize      int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`   // default 20, max 100 (handled in server)
+	PageToken     string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"` // opaque cursor
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListPendingRequest) Reset() {
 	*x = ListPendingRequest{}
-	mi := &file_approval_proto_msgTypes[0]
+	mi := &file_approval_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +156,7 @@ func (x *ListPendingRequest) String() string {
 func (*ListPendingRequest) ProtoMessage() {}
 
 func (x *ListPendingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_approval_proto_msgTypes[0]
+	mi := &file_approval_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,12 +169,19 @@ func (x *ListPendingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPendingRequest.ProtoReflect.Descriptor instead.
 func (*ListPendingRequest) Descriptor() ([]byte, []int) {
-	return file_approval_proto_rawDescGZIP(), []int{0}
+	return file_approval_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *ListPendingRequest) GetStaffId() string {
+func (x *ListPendingRequest) GetPageSize() int32 {
 	if x != nil {
-		return x.StaffId
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListPendingRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
 	}
 	return ""
 }
@@ -69,13 +189,14 @@ func (x *ListPendingRequest) GetStaffId() string {
 type ListPendingResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Pending       []*PendingBooking      `protobuf:"bytes,1,rep,name=pending,proto3" json:"pending,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"` // empty if no more
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListPendingResponse) Reset() {
 	*x = ListPendingResponse{}
-	mi := &file_approval_proto_msgTypes[1]
+	mi := &file_approval_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -87,7 +208,7 @@ func (x *ListPendingResponse) String() string {
 func (*ListPendingResponse) ProtoMessage() {}
 
 func (x *ListPendingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_approval_proto_msgTypes[1]
+	mi := &file_approval_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -100,7 +221,7 @@ func (x *ListPendingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPendingResponse.ProtoReflect.Descriptor instead.
 func (*ListPendingResponse) Descriptor() ([]byte, []int) {
-	return file_approval_proto_rawDescGZIP(), []int{1}
+	return file_approval_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ListPendingResponse) GetPending() []*PendingBooking {
@@ -110,6 +231,13 @@ func (x *ListPendingResponse) GetPending() []*PendingBooking {
 	return nil
 }
 
+func (x *ListPendingResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
 type PendingBooking struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BookingId     string                 `protobuf:"bytes,1,opt,name=booking_id,json=bookingId,proto3" json:"booking_id,omitempty"`
@@ -117,13 +245,14 @@ type PendingBooking struct {
 	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Start         *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=start,proto3" json:"start,omitempty"`
 	End           *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=end,proto3" json:"end,omitempty"`
+	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"` // "PENDING" | "APPROVED" | "DENIED"
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PendingBooking) Reset() {
 	*x = PendingBooking{}
-	mi := &file_approval_proto_msgTypes[2]
+	mi := &file_approval_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -135,7 +264,7 @@ func (x *PendingBooking) String() string {
 func (*PendingBooking) ProtoMessage() {}
 
 func (x *PendingBooking) ProtoReflect() protoreflect.Message {
-	mi := &file_approval_proto_msgTypes[2]
+	mi := &file_approval_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -148,7 +277,7 @@ func (x *PendingBooking) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PendingBooking.ProtoReflect.Descriptor instead.
 func (*PendingBooking) Descriptor() ([]byte, []int) {
-	return file_approval_proto_rawDescGZIP(), []int{2}
+	return file_approval_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PendingBooking) GetBookingId() string {
@@ -186,17 +315,24 @@ func (x *PendingBooking) GetEnd() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *PendingBooking) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
 type ApproveRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BookingId     string                 `protobuf:"bytes,1,opt,name=booking_id,json=bookingId,proto3" json:"booking_id,omitempty"`
-	StaffId       string                 `protobuf:"bytes,2,opt,name=staff_id,json=staffId,proto3" json:"staff_id,omitempty"`
+	StaffId       string                 `protobuf:"bytes,2,opt,name=staff_id,json=staffId,proto3" json:"staff_id,omitempty"` // optional; server may fall back to x-user-id metadata
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ApproveRequest) Reset() {
 	*x = ApproveRequest{}
-	mi := &file_approval_proto_msgTypes[3]
+	mi := &file_approval_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -208,7 +344,7 @@ func (x *ApproveRequest) String() string {
 func (*ApproveRequest) ProtoMessage() {}
 
 func (x *ApproveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_approval_proto_msgTypes[3]
+	mi := &file_approval_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -221,7 +357,7 @@ func (x *ApproveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApproveRequest.ProtoReflect.Descriptor instead.
 func (*ApproveRequest) Descriptor() ([]byte, []int) {
-	return file_approval_proto_rawDescGZIP(), []int{3}
+	return file_approval_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ApproveRequest) GetBookingId() string {
@@ -247,7 +383,7 @@ type ApproveResponse struct {
 
 func (x *ApproveResponse) Reset() {
 	*x = ApproveResponse{}
-	mi := &file_approval_proto_msgTypes[4]
+	mi := &file_approval_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -259,7 +395,7 @@ func (x *ApproveResponse) String() string {
 func (*ApproveResponse) ProtoMessage() {}
 
 func (x *ApproveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_approval_proto_msgTypes[4]
+	mi := &file_approval_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -272,7 +408,7 @@ func (x *ApproveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApproveResponse.ProtoReflect.Descriptor instead.
 func (*ApproveResponse) Descriptor() ([]byte, []int) {
-	return file_approval_proto_rawDescGZIP(), []int{4}
+	return file_approval_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ApproveResponse) GetSuccess() bool {
@@ -285,7 +421,7 @@ func (x *ApproveResponse) GetSuccess() bool {
 type DenyRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BookingId     string                 `protobuf:"bytes,1,opt,name=booking_id,json=bookingId,proto3" json:"booking_id,omitempty"`
-	StaffId       string                 `protobuf:"bytes,2,opt,name=staff_id,json=staffId,proto3" json:"staff_id,omitempty"`
+	StaffId       string                 `protobuf:"bytes,2,opt,name=staff_id,json=staffId,proto3" json:"staff_id,omitempty"` // optional; server may fall back to x-user-id metadata
 	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -293,7 +429,7 @@ type DenyRequest struct {
 
 func (x *DenyRequest) Reset() {
 	*x = DenyRequest{}
-	mi := &file_approval_proto_msgTypes[5]
+	mi := &file_approval_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -305,7 +441,7 @@ func (x *DenyRequest) String() string {
 func (*DenyRequest) ProtoMessage() {}
 
 func (x *DenyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_approval_proto_msgTypes[5]
+	mi := &file_approval_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -318,7 +454,7 @@ func (x *DenyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DenyRequest.ProtoReflect.Descriptor instead.
 func (*DenyRequest) Descriptor() ([]byte, []int) {
-	return file_approval_proto_rawDescGZIP(), []int{5}
+	return file_approval_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DenyRequest) GetBookingId() string {
@@ -351,7 +487,7 @@ type DenyResponse struct {
 
 func (x *DenyResponse) Reset() {
 	*x = DenyResponse{}
-	mi := &file_approval_proto_msgTypes[6]
+	mi := &file_approval_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -363,7 +499,7 @@ func (x *DenyResponse) String() string {
 func (*DenyResponse) ProtoMessage() {}
 
 func (x *DenyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_approval_proto_msgTypes[6]
+	mi := &file_approval_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -376,106 +512,10 @@ func (x *DenyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DenyResponse.ProtoReflect.Descriptor instead.
 func (*DenyResponse) Descriptor() ([]byte, []int) {
-	return file_approval_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *DenyResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-type ReassignRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	BookingId     string                 `protobuf:"bytes,1,opt,name=booking_id,json=bookingId,proto3" json:"booking_id,omitempty"`
-	NewStaffId    string                 `protobuf:"bytes,2,opt,name=new_staff_id,json=newStaffId,proto3" json:"new_staff_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReassignRequest) Reset() {
-	*x = ReassignRequest{}
-	mi := &file_approval_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReassignRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReassignRequest) ProtoMessage() {}
-
-func (x *ReassignRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_approval_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReassignRequest.ProtoReflect.Descriptor instead.
-func (*ReassignRequest) Descriptor() ([]byte, []int) {
-	return file_approval_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *ReassignRequest) GetBookingId() string {
-	if x != nil {
-		return x.BookingId
-	}
-	return ""
-}
-
-func (x *ReassignRequest) GetNewStaffId() string {
-	if x != nil {
-		return x.NewStaffId
-	}
-	return ""
-}
-
-type ReassignResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReassignResponse) Reset() {
-	*x = ReassignResponse{}
-	mi := &file_approval_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReassignResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReassignResponse) ProtoMessage() {}
-
-func (x *ReassignResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_approval_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReassignResponse.ProtoReflect.Descriptor instead.
-func (*ReassignResponse) Descriptor() ([]byte, []int) {
 	return file_approval_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *ReassignResponse) GetSuccess() bool {
+func (x *DenyResponse) GetSuccess() bool {
 	if x != nil {
 		return x.Success
 	}
@@ -575,7 +615,7 @@ type AuditEvent struct {
 	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	BookingId     string                 `protobuf:"bytes,2,opt,name=booking_id,json=bookingId,proto3" json:"booking_id,omitempty"`
 	StaffId       string                 `protobuf:"bytes,3,opt,name=staff_id,json=staffId,proto3" json:"staff_id,omitempty"`
-	Action        string                 `protobuf:"bytes,4,opt,name=action,proto3" json:"action,omitempty"` // approve/deny/reassign
+	Action        string                 `protobuf:"bytes,4,opt,name=action,proto3" json:"action,omitempty"` // "approve" | "deny" | "assign"
 	Reason        string                 `protobuf:"bytes,5,opt,name=reason,proto3" json:"reason,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -658,18 +698,30 @@ var File_approval_proto protoreflect.FileDescriptor
 
 const file_approval_proto_rawDesc = "" +
 	"\n" +
-	"\x0eapproval.proto\x12\bapproval\x1a\x1fgoogle/protobuf/timestamp.proto\"/\n" +
-	"\x12ListPendingRequest\x12\x19\n" +
-	"\bstaff_id\x18\x01 \x01(\tR\astaffId\"I\n" +
+	"\x0eapproval.proto\x12\bapproval\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa4\x01\n" +
+	"\x10AddToListRequest\x12\x17\n" +
+	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x120\n" +
+	"\x05start\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x05start\x12,\n" +
+	"\x03end\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x03end\"2\n" +
+	"\x11AddToListResponse\x12\x1d\n" +
+	"\n" +
+	"booking_id\x18\x01 \x01(\tR\tbookingId\"P\n" +
+	"\x12ListPendingRequest\x12\x1b\n" +
+	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tR\tpageToken\"q\n" +
 	"\x13ListPendingResponse\x122\n" +
-	"\apending\x18\x01 \x03(\v2\x18.approval.PendingBookingR\apending\"\xc1\x01\n" +
+	"\apending\x18\x01 \x03(\v2\x18.approval.PendingBookingR\apending\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xd9\x01\n" +
 	"\x0ePendingBooking\x12\x1d\n" +
 	"\n" +
 	"booking_id\x18\x01 \x01(\tR\tbookingId\x12\x17\n" +
 	"\aroom_id\x18\x02 \x01(\tR\x06roomId\x12\x17\n" +
 	"\auser_id\x18\x03 \x01(\tR\x06userId\x120\n" +
 	"\x05start\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x05start\x12,\n" +
-	"\x03end\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x03end\"J\n" +
+	"\x03end\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x03end\x12\x16\n" +
+	"\x06status\x18\x06 \x01(\tR\x06status\"J\n" +
 	"\x0eApproveRequest\x12\x1d\n" +
 	"\n" +
 	"booking_id\x18\x01 \x01(\tR\tbookingId\x12\x19\n" +
@@ -682,13 +734,6 @@ const file_approval_proto_rawDesc = "" +
 	"\bstaff_id\x18\x02 \x01(\tR\astaffId\x12\x16\n" +
 	"\x06reason\x18\x03 \x01(\tR\x06reason\"(\n" +
 	"\fDenyResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"R\n" +
-	"\x0fReassignRequest\x12\x1d\n" +
-	"\n" +
-	"booking_id\x18\x01 \x01(\tR\tbookingId\x12 \n" +
-	"\fnew_staff_id\x18\x02 \x01(\tR\n" +
-	"newStaffId\",\n" +
-	"\x10ReassignResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"5\n" +
 	"\x14GetAuditTrailRequest\x12\x1d\n" +
 	"\n" +
@@ -704,13 +749,13 @@ const file_approval_proto_rawDesc = "" +
 	"\x06action\x18\x04 \x01(\tR\x06action\x12\x16\n" +
 	"\x06reason\x18\x05 \x01(\tR\x06reason\x129\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt2\xfc\x02\n" +
+	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt2\xf7\x02\n" +
 	"\x0fApprovalService\x12J\n" +
-	"\vListPending\x12\x1c.approval.ListPendingRequest\x1a\x1d.approval.ListPendingResponse\x12E\n" +
+	"\vListPending\x12\x1c.approval.ListPendingRequest\x1a\x1d.approval.ListPendingResponse\x12D\n" +
+	"\tAddToList\x12\x1a.approval.AddToListRequest\x1a\x1b.approval.AddToListResponse\x12E\n" +
 	"\x0eApproveBooking\x12\x18.approval.ApproveRequest\x1a\x19.approval.ApproveResponse\x12<\n" +
-	"\vDenyBooking\x12\x15.approval.DenyRequest\x1a\x16.approval.DenyResponse\x12I\n" +
-	"\x10ReassignApprover\x12\x19.approval.ReassignRequest\x1a\x1a.approval.ReassignResponse\x12M\n" +
-	"\rGetAuditTrail\x12\x1e.approval.GetAuditTrailRequest\x1a\x1c.approval.AuditTrailResponseBGZEgithub.com/JJnvn/Software-Arch-CPRoom/backend/services/approval;protob\x06proto3"
+	"\vDenyBooking\x12\x15.approval.DenyRequest\x1a\x16.approval.DenyResponse\x12M\n" +
+	"\rGetAuditTrail\x12\x1e.approval.GetAuditTrailRequest\x1a\x1c.approval.AuditTrailResponseBMZKgithub.com/JJnvn/Software-Arch-CPRoom/backend/services/approval/proto;protob\x06proto3"
 
 var (
 	file_approval_proto_rawDescOnce sync.Once
@@ -726,41 +771,43 @@ func file_approval_proto_rawDescGZIP() []byte {
 
 var file_approval_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_approval_proto_goTypes = []any{
-	(*ListPendingRequest)(nil),    // 0: approval.ListPendingRequest
-	(*ListPendingResponse)(nil),   // 1: approval.ListPendingResponse
-	(*PendingBooking)(nil),        // 2: approval.PendingBooking
-	(*ApproveRequest)(nil),        // 3: approval.ApproveRequest
-	(*ApproveResponse)(nil),       // 4: approval.ApproveResponse
-	(*DenyRequest)(nil),           // 5: approval.DenyRequest
-	(*DenyResponse)(nil),          // 6: approval.DenyResponse
-	(*ReassignRequest)(nil),       // 7: approval.ReassignRequest
-	(*ReassignResponse)(nil),      // 8: approval.ReassignResponse
+	(*AddToListRequest)(nil),      // 0: approval.AddToListRequest
+	(*AddToListResponse)(nil),     // 1: approval.AddToListResponse
+	(*ListPendingRequest)(nil),    // 2: approval.ListPendingRequest
+	(*ListPendingResponse)(nil),   // 3: approval.ListPendingResponse
+	(*PendingBooking)(nil),        // 4: approval.PendingBooking
+	(*ApproveRequest)(nil),        // 5: approval.ApproveRequest
+	(*ApproveResponse)(nil),       // 6: approval.ApproveResponse
+	(*DenyRequest)(nil),           // 7: approval.DenyRequest
+	(*DenyResponse)(nil),          // 8: approval.DenyResponse
 	(*GetAuditTrailRequest)(nil),  // 9: approval.GetAuditTrailRequest
 	(*AuditTrailResponse)(nil),    // 10: approval.AuditTrailResponse
 	(*AuditEvent)(nil),            // 11: approval.AuditEvent
 	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
 }
 var file_approval_proto_depIdxs = []int32{
-	2,  // 0: approval.ListPendingResponse.pending:type_name -> approval.PendingBooking
-	12, // 1: approval.PendingBooking.start:type_name -> google.protobuf.Timestamp
-	12, // 2: approval.PendingBooking.end:type_name -> google.protobuf.Timestamp
-	11, // 3: approval.AuditTrailResponse.events:type_name -> approval.AuditEvent
-	12, // 4: approval.AuditEvent.created_at:type_name -> google.protobuf.Timestamp
-	0,  // 5: approval.ApprovalService.ListPending:input_type -> approval.ListPendingRequest
-	3,  // 6: approval.ApprovalService.ApproveBooking:input_type -> approval.ApproveRequest
-	5,  // 7: approval.ApprovalService.DenyBooking:input_type -> approval.DenyRequest
-	7,  // 8: approval.ApprovalService.ReassignApprover:input_type -> approval.ReassignRequest
-	9,  // 9: approval.ApprovalService.GetAuditTrail:input_type -> approval.GetAuditTrailRequest
-	1,  // 10: approval.ApprovalService.ListPending:output_type -> approval.ListPendingResponse
-	4,  // 11: approval.ApprovalService.ApproveBooking:output_type -> approval.ApproveResponse
-	6,  // 12: approval.ApprovalService.DenyBooking:output_type -> approval.DenyResponse
-	8,  // 13: approval.ApprovalService.ReassignApprover:output_type -> approval.ReassignResponse
-	10, // 14: approval.ApprovalService.GetAuditTrail:output_type -> approval.AuditTrailResponse
-	10, // [10:15] is the sub-list for method output_type
-	5,  // [5:10] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	12, // 0: approval.AddToListRequest.start:type_name -> google.protobuf.Timestamp
+	12, // 1: approval.AddToListRequest.end:type_name -> google.protobuf.Timestamp
+	4,  // 2: approval.ListPendingResponse.pending:type_name -> approval.PendingBooking
+	12, // 3: approval.PendingBooking.start:type_name -> google.protobuf.Timestamp
+	12, // 4: approval.PendingBooking.end:type_name -> google.protobuf.Timestamp
+	11, // 5: approval.AuditTrailResponse.events:type_name -> approval.AuditEvent
+	12, // 6: approval.AuditEvent.created_at:type_name -> google.protobuf.Timestamp
+	2,  // 7: approval.ApprovalService.ListPending:input_type -> approval.ListPendingRequest
+	0,  // 8: approval.ApprovalService.AddToList:input_type -> approval.AddToListRequest
+	5,  // 9: approval.ApprovalService.ApproveBooking:input_type -> approval.ApproveRequest
+	7,  // 10: approval.ApprovalService.DenyBooking:input_type -> approval.DenyRequest
+	9,  // 11: approval.ApprovalService.GetAuditTrail:input_type -> approval.GetAuditTrailRequest
+	3,  // 12: approval.ApprovalService.ListPending:output_type -> approval.ListPendingResponse
+	1,  // 13: approval.ApprovalService.AddToList:output_type -> approval.AddToListResponse
+	6,  // 14: approval.ApprovalService.ApproveBooking:output_type -> approval.ApproveResponse
+	8,  // 15: approval.ApprovalService.DenyBooking:output_type -> approval.DenyResponse
+	10, // 16: approval.ApprovalService.GetAuditTrail:output_type -> approval.AuditTrailResponse
+	12, // [12:17] is the sub-list for method output_type
+	7,  // [7:12] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_approval_proto_init() }
