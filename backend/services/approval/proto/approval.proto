@@ -2,8 +2,7 @@ syntax = "proto3";
 package approval;
 
 import "google/protobuf/timestamp.proto";
-option go_package = "github.com/JJnvn/Software-Arch-CPRoom/backend/proto;proto";
-
+option go_package = "github.com/JJnvn/Software-Arch-CPRoom/backend/services/approval;proto";
 
 service ApprovalService {
   rpc ListPending(ListPendingRequest) returns (ListPendingResponse);
