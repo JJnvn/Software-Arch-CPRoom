@@ -1,37 +1,53 @@
 syntax = "proto3";
+
 package approval;
 
 import "google/protobuf/timestamp.proto";
-option go_package = "github.com/JJnvn/Software-Arch-CPRoom/backend/proto;proto";
 
+// Booking-style: stubs live at module root, package name "proto"
+option go_package = "github.com/JJnvn/Software-Arch-CPRoom/backend/services/approval/proto;proto";
 
 service ApprovalService {
   rpc ListPending(ListPendingRequest) returns (ListPendingResponse);
+  rpc AddToList(AddToListRequest) returns (AddToListResponse);
   rpc ApproveBooking(ApproveRequest) returns (ApproveResponse);
   rpc DenyBooking(DenyRequest) returns (DenyResponse);
-  rpc ReassignApprover(ReassignRequest) returns (ReassignResponse);
   rpc GetAuditTrail(GetAuditTrailRequest) returns (AuditTrailResponse);
 }
 
+message AddToListRequest {
+  string room_id = 1;
+  string user_id = 2;
+  google.protobuf.Timestamp start = 3;
+  google.protobuf.Timestamp end   = 4;
+}
+
+message AddToListResponse {
+  string booking_id = 1;
+}
+
 message ListPendingRequest {
-  string staff_id = 1;
+  int32 page_size   = 1;  // default 20, max 100 (handled in server)
+  string page_token = 2;  // opaque cursor
 }
 
 message ListPendingResponse {
   repeated PendingBooking pending = 1;
+  string next_page_token = 2; // empty if no more
 }
 
 message PendingBooking {
   string booking_id = 1;
-  string room_id = 2;
-  string user_id = 3;
+  string room_id    = 2;
+  string user_id    = 3;
   google.protobuf.Timestamp start = 4;
-  google.protobuf.Timestamp end = 5;
+  google.protobuf.Timestamp end   = 5;
+  string status     = 6; // "PENDING" | "APPROVED" | "DENIED"
 }
 
 message ApproveRequest {
   string booking_id = 1;
-  string staff_id = 2;
+  string staff_id   = 2; // optional; server may fall back to x-user-id metadata
 }
 
 message ApproveResponse {
@@ -40,20 +56,11 @@ message ApproveResponse {
 
 message DenyRequest {
   string booking_id = 1;
-  string staff_id = 2;
-  string reason = 3;
+  string staff_id   = 2; // optional; server may fall back to x-user-id metadata
+  string reason     = 3;
 }
 
 message DenyResponse {
-  bool success = 1;
-}
-
-message ReassignRequest {
-  string booking_id = 1;
-  string new_staff_id = 2;
-}
-
-message ReassignResponse {
   bool success = 1;
 }
 
@@ -66,10 +73,10 @@ message AuditTrailResponse {
 }
 
 message AuditEvent {
-  string event_id = 1;
+  string event_id   = 1;
   string booking_id = 2;
-  string staff_id = 3;
-  string action = 4; // approve/deny/reassign
-  string reason = 5;
+  string staff_id   = 3;
+  string action     = 4; // "approve" | "deny" | "assign"
+  string reason     = 5;
   google.protobuf.Timestamp created_at = 6;
 }

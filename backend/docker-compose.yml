@@ -143,6 +143,24 @@ services:
         condition: service_healthy
     networks:
       - cproom_net
+      
+  approval-service:
+    build: ./services/approval
+    container_name: cproom-approval-service
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      APPROVAL_SERVICE_PORT: ${APPROVAL_SERVICE_PORT}
+      APPROVAL_HTTP_PORT: ${APPROVAL_HTTP_PORT}
+    ports:
+      - "${APPROVAL_SERVICE_PORT}:50053"  # gRPC
+      - "${APPROVAL_HTTP_PORT}:8083"      # HTTP health/test
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cproom_net
 
   notification-service:
     build:
