@@ -1,28 +1,31 @@
 package middleware
 
 import (
-	"strings"
-
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/internal"
+	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/models"
 	"github.com/gofiber/fiber/v2"
 )
 
 func AuthMiddleware(service *internal.AuthService, roles ...string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		authHeader := c.Get("Authorization")
-		if authHeader == "" {
+		tokenStr := c.Cookies(models.TOKEN)
+
+		if tokenStr == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "missing token"})
 		}
 
-		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 		claims, err := service.ParseJWT(tokenStr)
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid token"})
 		}
 
-		// Role check
+		email, okEmail := claims["email"].(string)
+		role, okRole := claims["role"].(string)
+		if !okEmail || !okRole {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid claims"})
+		}
+
 		if len(roles) > 0 {
-			role := claims["role"].(string)
 			allowed := false
 			for _, r := range roles {
 				if r == role {
@@ -35,8 +38,9 @@ func AuthMiddleware(service *internal.AuthService, roles ...string) fiber.Handle
 			}
 		}
 
-		// Store claims in context for handler use
-		c.Locals("claims", claims)
+		c.Locals("email", email)
+		c.Locals("role", role)
+
 		return c.Next()
 	}
 }

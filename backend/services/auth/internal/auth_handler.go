@@ -1,8 +1,6 @@
 package internal
 
 import (
-	"strings"
-
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/models"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/oauth2"
@@ -50,12 +48,14 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
 	}
 
+	h.setAuthCookie(c, token)
+
 	return c.JSON(fiber.Map{
-		"token": token,
+		"message": "login successful",
 		"user": fiber.Map{
 			"id":    user.ID,
-			"email": user.Email,
 			"name":  user.Name,
+			"email": user.Email,
 			"role":  user.Role,
 		},
 	})
@@ -73,26 +73,27 @@ func (h *AuthHandler) GitHubCallback(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
+	token, err := h.service.GenerateJWT(user.Email, user.Role)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to generate token"})
+	}
+
+	h.setAuthCookie(c, token)
+
 	return c.JSON(fiber.Map{
-		"id":    user.ID,
-		"name":  user.Name,
-		"email": user.Email,
+		"message": "GitHub login successful",
+		"user": fiber.Map{
+			"id":    user.ID,
+			"name":  user.Name,
+			"email": user.Email,
+			"role":  user.Role,
+		},
 	})
 }
 
 func (h *AuthHandler) MyProfile(c *fiber.Ctx) error {
-	authHeader := c.Get("Authorization")
-	if authHeader == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "missing token"})
-	}
+	email := c.Locals("email").(string)
 
-	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
-	claims, err := h.service.ParseJWT(tokenStr)
-	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid token"})
-	}
-
-	email := claims["email"].(string)
 	user, err := h.service.GetByEmail(email)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "user not found"})
@@ -101,7 +102,7 @@ func (h *AuthHandler) MyProfile(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"id":    user.ID,
 		"name":  user.Name,
-		"email": user.Email,
+		"email": email,
 		"role":  user.Role,
 	})
 }
@@ -122,4 +123,33 @@ func (h *AuthHandler) AdminRegister(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "admin created"})
+}
+
+func (h *AuthHandler) Logout(c *fiber.Ctx) error {
+	h.clearAuthCookie(c)
+	return c.JSON(fiber.Map{"message": "logged out"})
+}
+
+func (h *AuthHandler) setAuthCookie(c *fiber.Ctx, token string) {
+	c.Cookie(&fiber.Cookie{
+		Name:     models.TOKEN,
+		Value:    token,
+		Path:     "/",
+		HTTPOnly: true,
+		Secure:   false,
+		SameSite: "Lax",
+		MaxAge:   60 * 60 * 24 * 2, // 2 days
+	})
+}
+
+func (h *AuthHandler) clearAuthCookie(c *fiber.Ctx) {
+	c.Cookie(&fiber.Cookie{
+		Name:     models.TOKEN,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HTTPOnly: true,
+		Secure:   false,
+		SameSite: "Lax",
+	})
 }

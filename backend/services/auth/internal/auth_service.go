@@ -101,6 +101,7 @@ func (s *AuthService) HandleGitHubCallback(code string) (*models.User, error) {
 	newUser := &models.User{
 		Name:  ghUser.Name,
 		Email: email,
+		Role:  models.USER,
 	}
 	if err := s.repo.CreateUser(newUser); err != nil {
 		return nil, err
