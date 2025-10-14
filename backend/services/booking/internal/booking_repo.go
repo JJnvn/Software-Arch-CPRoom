@@ -29,7 +29,14 @@ func (r *BookingRepository) FindByID(id uuid.UUID) (*models.Booking, error) {
 }
 
 func (r *BookingRepository) CancelBooking(id uuid.UUID) error {
-	return r.db.Model(&models.Booking{}).Where("id = ?", id).Update("status", "cancelled").Error
+	return r.db.Model(&models.Booking{}).Where("id = ?", id).Updates(map[string]any{
+		"status":        models.StatusCancelled,
+		"approved_by":   nil,
+		"approved_at":   nil,
+		"denied_by":     nil,
+		"denied_at":     nil,
+		"denied_reason": nil,
+	}).Error
 }
 
 func (r *BookingRepository) UpdateBooking(id uuid.UUID, newStart, newEnd time.Time) error {
@@ -45,7 +52,7 @@ func (r *BookingRepository) TransferBooking(id, newOwner uuid.UUID) error {
 
 func (r *BookingRepository) GetRoomSchedule(roomID uuid.UUID) ([]models.Booking, error) {
 	var bookings []models.Booking
-	err := r.db.Where("room_id = ? AND status = ?", roomID, "active").Find(&bookings).Error
+	err := r.db.Where("room_id = ? AND status = ?", roomID, models.StatusApproved).Find(&bookings).Error
 	return bookings, err
 }
 
@@ -53,4 +60,8 @@ func (r *BookingRepository) AdminListBookings(roomID uuid.UUID) ([]models.Bookin
 	var bookings []models.Booking
 	err := r.db.Where("room_id = ?", roomID).Find(&bookings).Error
 	return bookings, err
+}
+
+func (r *BookingRepository) UpdateStatus(id uuid.UUID, fields map[string]any) error {
+	return r.db.Model(&models.Booking{}).Where("id = ?", id).Updates(fields).Error
 }

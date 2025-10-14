@@ -1,28 +1,22 @@
 # Build stage
-FROM golang:1.25-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
-WORKDIR /app
+WORKDIR /app/backend
 
-# Copy go.mod and go.sum first
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Copy rest of the code
 COPY . .
 
-# Build binary
-RUN go build -o approval-service ./cmd/server.go
+WORKDIR /app/backend/services/approval
+
+RUN go mod tidy
+RUN go build -o /approval-service ./cmd/server.go
 
 # Run stage
 FROM debian:bookworm-slim
 
 WORKDIR /root/
 
-# Copy binary from builder
-COPY --from=builder /app/approval-service .
+COPY --from=builder /approval-service .
 
-# Expose gRPC port
-EXPOSE 50053
+EXPOSE 8085
 
-# Run command
 CMD ["./approval-service"]

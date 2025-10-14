@@ -6,6 +6,7 @@ import (
 	"os"
 
 	middleware "github.com/JJnvn/Software-Arch-CPRoom/backend/libs/middleware"
+	notifier "github.com/JJnvn/Software-Arch-CPRoom/backend/libs/notifier"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/booking/config"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/booking/internal"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/booking/models"
@@ -22,13 +23,17 @@ func main() {
 
 	// DB
 	db := config.ConnectDB()
+	if err := db.AutoMigrate(&models.Booking{}); err != nil {
+		log.Fatalf("failed to migrate bookings table: %v", err)
+	}
 	db.AutoMigrate(&models.Booking{})
 
 	// Layers
 	repo := internal.NewBookingRepository(db)
-	notifier := internal.NewNotifier(
+	notifier := notifier.New(
 		os.Getenv("NOTIFICATION_SERVICE_URL"),
 		os.Getenv("NOTIFICATION_CHANNEL"),
+		os.Getenv("SERVICE_API_TOKEN"),
 	)
 	service := internal.NewBookingService(repo, notifier)
 	handler := internal.NewBookingHandler(service)

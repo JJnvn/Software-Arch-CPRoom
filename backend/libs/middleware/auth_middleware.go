@@ -33,10 +33,24 @@ func AuthMiddleware() fiber.Handler {
 	if cookieName == "" {
 		cookieName = defaultCookieName
 	}
+	serviceToken := strings.TrimSpace(os.Getenv("SERVICE_API_TOKEN"))
 
 	client := &http.Client{Timeout: 3 * time.Second}
 
 	return func(c *fiber.Ctx) error {
+		if serviceToken != "" {
+			if hdr := strings.TrimSpace(c.Get("X-Service-Token")); hdr != "" && hdr == serviceToken {
+				user := &AuthenticatedUser{
+					ID:    "service",
+					Name:  "Internal Service",
+					Email: "service@internal",
+					Role:  "admin",
+				}
+				c.Locals(contextKeyUser, user)
+				return c.Next()
+			}
+		}
+
 		token := c.Cookies(cookieName)
 		if token == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "authentication required"})

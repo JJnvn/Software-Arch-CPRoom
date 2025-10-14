@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"fmt"
+
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/room/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -19,7 +21,9 @@ type roomRepository struct {
 }
 
 func NewRoomRepository(db *gorm.DB) *roomRepository {
-	db.AutoMigrate(&models.Room{})
+	if err := db.AutoMigrate(&models.Room{}); err != nil {
+		panic(fmt.Sprintf("failed to migrate rooms table: %v", err))
+	}
 	return &roomRepository{db: db}
 }
 

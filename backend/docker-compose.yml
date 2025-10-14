@@ -112,6 +112,7 @@ services:
       BOOKING_HTTP_PORT: ${BOOKING_HTTP_PORT}
       NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL}
       NOTIFICATION_CHANNEL: ${NOTIFICATION_CHANNEL}
+      SERVICE_API_TOKEN: ${SERVICE_API_TOKEN}
       NOTIFICATION_DEFAULT_EMAIL: ${NOTIFICATION_DEFAULT_EMAIL}
     ports:
       - "${BOOKING_SERVICE_PORT:-50051}:50051"
@@ -145,17 +146,25 @@ services:
       - cproom_net
       
   approval-service:
-    build: ./services/approval
+    build:
+      context: .
+      dockerfile: ./services/approval/Dockerfile
     container_name: cproom-approval-service
     env_file:
       - .env
     environment:
-      DB_HOST: postgres
-      APPROVAL_SERVICE_PORT: ${APPROVAL_SERVICE_PORT}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
       APPROVAL_HTTP_PORT: ${APPROVAL_HTTP_PORT}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL}
+      NOTIFICATION_CHANNEL: ${NOTIFICATION_CHANNEL}
+      AUTH_SERVICE_INTERNAL_URL: ${AUTH_SERVICE_INTERNAL_URL}
+      SERVICE_API_TOKEN: ${SERVICE_API_TOKEN}
     ports:
-      - "${APPROVAL_SERVICE_PORT}:50053"  # gRPC
-      - "${APPROVAL_HTTP_PORT}:8083"      # HTTP health/test
+      - "${APPROVAL_HTTP_PORT:-8085}:8085"
     depends_on:
       postgres:
         condition: service_healthy
@@ -182,6 +191,7 @@ services:
       SMTP_FROM: ${SMTP_FROM}
       NOTIFICATION_DEFAULT_EMAIL: ${NOTIFICATION_DEFAULT_EMAIL}
       AUTH_SERVICE_URL: ${AUTH_SERVICE_INTERNAL_URL}
+      SERVICE_API_TOKEN: ${SERVICE_API_TOKEN}
     ports:
       - "${NOTIFICATION_SERVICE_PORT:-8084}:8084"
     depends_on:
