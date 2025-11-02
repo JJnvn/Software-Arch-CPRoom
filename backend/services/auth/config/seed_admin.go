@@ -10,7 +10,7 @@ import (
 
 func SeedAdmin(db *gorm.DB) {
 	var count int64
-	if err := db.Model(&models.User{}).Where("role = ?", "admin").Count(&count).Error; err != nil {
+	if err := db.Model(&models.User{}).Where("role = ?", models.ADMIN).Count(&count).Error; err != nil {
 		log.Printf("Failed to check for existing admin: %v", err)
 		return
 	}
