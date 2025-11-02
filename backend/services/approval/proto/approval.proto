@@ -2,7 +2,7 @@ syntax = "proto3";
 package approval;
 
 import "google/protobuf/timestamp.proto";
-option go_package = "github.com/JJnvn/Software-Arch-CPRoom/backend/proto;proto";
+option go_package = "github.com/JJnvn/Software-Arch-CPRoom/backend/services/approval/proto;proto";
 
 
 service ApprovalService {
@@ -59,6 +59,7 @@ message AuditEvent {
   string event_id = 1;
   string booking_id = 2;
   string staff_id = 3;
-  string reason = 4;
-  google.protobuf.Timestamp created_at = 5;
+  string action = 4;
+  string reason = 5;
+  google.protobuf.Timestamp created_at = 6;
 }
