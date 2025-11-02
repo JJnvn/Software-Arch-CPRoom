@@ -8,6 +8,7 @@ import (
 
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/config"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/internal"
+	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/middleware"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/models"
 )
 
@@ -20,6 +21,7 @@ func main() {
 	// DB
 	db := config.ConnectDB()
 	db.AutoMigrate(&models.User{})
+	config.SeedAdmin(db)
 
 	oauthCfg := config.GitHubOauthConfig()
 
@@ -39,8 +41,11 @@ func main() {
 	app.Get("/auth/github/login", handler.GitHubLogin)
 	app.Get("/auth/github/callback", handler.GitHubCallback)
 
+	app.Get("/auth/my-profile", middleware.AuthMiddleware(service, models.USER, models.ADMIN), handler.MyProfile)
 	app.Get("/auth/logout", handler.Logout)
-	app.Get("/auth/my-profile", handler.MyProfile)
+
+	// admin routes
+	app.Post("/auth/admin/register", middleware.AuthMiddleware(service, models.ADMIN), handler.AdminRegister)
 
 	log.Println("Auth service running on :8081")
 	if err := app.Listen(":8081"); err != nil {

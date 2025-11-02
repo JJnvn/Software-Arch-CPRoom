@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"os"
+	"time"
 
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/models"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 )
@@ -26,7 +29,7 @@ func NewAuthService(
 	}
 }
 
-func (s *AuthService) Register(name, email, password string) error {
+func (s *AuthService) Register(name, email, password, role string) error {
 	// hash password
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -37,22 +40,28 @@ func (s *AuthService) Register(name, email, password string) error {
 		Name:     name,
 		Email:    email,
 		Password: string(hashed),
+		Role:     role,
 	}
 
 	return s.repo.CreateUser(user)
 }
 
-func (s *AuthService) Login(email, password string) (*models.User, error) {
+func (s *AuthService) Login(email, password string) (*models.User, string, error) {
 	user, err := s.repo.FindByEmail(email)
 	if err != nil {
-		return nil, errors.New("invalid email or password")
+		return nil, "", errors.New("invalid email or password")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return nil, errors.New("invalid email or password")
+		return nil, "", errors.New("invalid email or password")
 	}
 
-	return user, nil
+	token, err := s.GenerateJWT(user.Email, user.Role)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return user, token, nil
 }
 
 func (s *AuthService) HandleGitHubCallback(code string) (*models.User, error) {
@@ -92,6 +101,7 @@ func (s *AuthService) HandleGitHubCallback(code string) (*models.User, error) {
 	newUser := &models.User{
 		Name:  ghUser.Name,
 		Email: email,
+		Role:  models.USER,
 	}
 	if err := s.repo.CreateUser(newUser); err != nil {
 		return nil, err
@@ -102,4 +112,35 @@ func (s *AuthService) HandleGitHubCallback(code string) (*models.User, error) {
 
 func (s *AuthService) GetByEmail(email string) (*models.User, error) {
 	return s.repo.FindByEmail(email)
+}
+
+func (s *AuthService) GenerateJWT(email, role string) (string, error) {
+	secret := os.Getenv("JWT_SECRET")
+
+	claims := jwt.MapClaims{
+		"email": email,
+		"role":  role,
+		"exp":   time.Now().Add(7 * 24 * time.Hour).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secret))
+}
+
+func (s *AuthService) ParseJWT(tokenString string) (jwt.MapClaims, error) {
+	secret := os.Getenv("JWT_SECRET")
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte(secret), nil
+	})
+	if err != nil || !token.Valid {
+		return nil, errors.New("invalid token")
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, errors.New("invalid claims")
+	}
+
+	return claims, nil
 }
