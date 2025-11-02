@@ -12,7 +12,7 @@ type Booking struct {
 	RoomID    uuid.UUID `gorm:"type:uuid" json:"room_id"`
 	StartTime time.Time `json:"start_time"`
 	EndTime   time.Time `json:"end_time"`
-	Status    string    `gorm:"type:varchar(20);default:'active'" json:"status"` // active, cancelled, transferred
+	Status    string    `gorm:"type:varchar(20);default:'active'" json:"status"` // pending,approve,cancel
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
