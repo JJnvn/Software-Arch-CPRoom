@@ -1,11 +1,15 @@
 package internal
 
 import (
+	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	pb "github.com/JJnvn/Software-Arch-CPRoom/backend/services/booking/proto"
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -118,6 +122,40 @@ func (h *BookingHandler) CreateBooking(c *fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
+func (h *BookingHandler) ListUserBookings(c *fiber.Ctx) error {
+	claims, err := parseJWTClaims(c)
+	if err != nil {
+		return respondError(c, err)
+	}
+
+	userIDStr := strings.TrimSpace(claims.Subject)
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid token subject"})
+	}
+
+	bookings, err := h.service.ListBookingsByUser(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	response := make([]fiber.Map, len(bookings))
+	for i, booking := range bookings {
+		response[i] = fiber.Map{
+			"booking_id": booking.ID.String(),
+			"user_id":    booking.UserID.String(),
+			"room_id":    booking.RoomID.String(),
+			"start_time": booking.StartTime,
+			"end_time":   booking.EndTime,
+			"status":     booking.Status,
+			"created_at": booking.CreatedAt,
+			"updated_at": booking.UpdatedAt,
+		}
+	}
+
+	return c.JSON(response)
+}
+
 func translateGRPCError(c *fiber.Ctx, err error) error {
 	st, ok := status.FromError(err)
 	if !ok {
@@ -139,4 +177,64 @@ func translateGRPCError(c *fiber.Ctx, err error) error {
 	}
 
 	return c.Status(httpStatus).JSON(fiber.Map{"error": st.Message()})
+}
+
+type jwtClaims struct {
+	Email string `json:"email"`
+	Role  string `json:"role"`
+	jwt.RegisteredClaims
+}
+
+func parseJWTClaims(c *fiber.Ctx) (*jwtClaims, error) {
+	authHeader := strings.TrimSpace(c.Get("Authorization"))
+	if authHeader == "" {
+		return nil, fiber.NewError(fiber.StatusUnauthorized, "authorization header required")
+	}
+
+	if len(authHeader) < 7 || !strings.EqualFold(authHeader[:7], "bearer ") {
+		return nil, fiber.NewError(fiber.StatusUnauthorized, "authorization header must be Bearer token")
+	}
+
+	tokenString := strings.TrimSpace(authHeader[7:])
+	if tokenString == "" {
+		return nil, fiber.NewError(fiber.StatusUnauthorized, "bearer token is empty")
+	}
+
+	secret := strings.TrimSpace(os.Getenv("JWT_SECRET"))
+	if secret == "" {
+		return nil, fiber.NewError(fiber.StatusInternalServerError, "jwt secret not configured")
+	}
+
+	issuer := strings.TrimSpace(os.Getenv("JWT_ISSUER"))
+	if issuer == "" {
+		issuer = "cproom-auth"
+	}
+
+	claims := &jwtClaims{}
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		claims,
+		func(t *jwt.Token) (any, error) {
+			return []byte(secret), nil
+		},
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithIssuedAt(),
+		jwt.WithExpirationRequired(),
+	)
+	if err != nil || !token.Valid {
+		return nil, fiber.NewError(fiber.StatusUnauthorized, "invalid token")
+	}
+
+	if claims.Issuer != issuer {
+		return nil, fiber.NewError(fiber.StatusUnauthorized, "invalid token issuer")
+	}
+
+	return claims, nil
+}
+
+func respondError(c *fiber.Ctx, err error) error {
+	if fe, ok := err.(*fiber.Error); ok {
+		return c.Status(fe.Code).JSON(fiber.Map{"error": fe.Message})
+	}
+	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 }

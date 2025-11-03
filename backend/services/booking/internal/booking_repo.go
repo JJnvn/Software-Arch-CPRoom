@@ -142,6 +142,14 @@ func (r *BookingRepository) GetRoomSchedule(roomID uuid.UUID) ([]models.Booking,
 	return bookings, err
 }
 
+func (r *BookingRepository) ListByUser(userID uuid.UUID) ([]models.Booking, error) {
+	var bookings []models.Booking
+	err := r.db.Where("user_id = ?", userID).
+		Order("start_time DESC").
+		Find(&bookings).Error
+	return bookings, err
+}
+
 func (r *BookingRepository) AdminListBookings(roomID uuid.UUID) ([]models.Booking, error) {
 	var bookings []models.Booking
 	err := r.db.Where("room_id = ?", roomID).

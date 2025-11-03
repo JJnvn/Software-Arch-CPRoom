@@ -62,6 +62,7 @@ func main() {
 	go func() {
 		app := fiber.New()
 		app.Get("/rooms/search", handler.SearchRooms)
+		app.Get("/bookings/mine", handler.ListUserBookings)
 		app.Post("/bookings", handler.CreateBooking)
 
 		log.Printf("Booking HTTP server running on :%s", httpPort)

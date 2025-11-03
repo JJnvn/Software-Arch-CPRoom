@@ -165,6 +165,10 @@ func (s *BookingService) GetRoomSchedule(ctx context.Context, req *pb.GetRoomSch
 	return resp, nil
 }
 
+func (s *BookingService) ListBookingsByUser(ctx context.Context, userID uuid.UUID) ([]models.Booking, error) {
+	return s.repo.ListByUser(userID)
+}
+
 func (s *BookingService) CancelBooking(ctx context.Context, req *pb.CancelBookingRequest) (*pb.CancelBookingResponse, error) {
 	id, err := uuid.Parse(req.GetBookingId())
 	if err != nil {
