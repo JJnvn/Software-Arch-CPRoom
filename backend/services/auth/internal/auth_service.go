@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/models"
@@ -40,7 +41,7 @@ func (s *AuthService) Register(name, email, password, role string) error {
 		Name:     name,
 		Email:    email,
 		Password: string(hashed),
-		Role:     role,
+		Role:     strings.ToUpper(role),
 	}
 
 	return s.repo.CreateUser(user)
