@@ -95,16 +95,7 @@ func (UnimplementedApprovalServiceServer) GetAuditTrail(context.Context, *GetAud
 
 func (UnimplementedApprovalServiceServer) mustEmbedUnimplementedApprovalServiceServer() {}
 
-type UnsafeApprovalServiceServer interface {
-	mustEmbedUnimplementedApprovalServiceServer()
-}
-
 func RegisterApprovalServiceServer(s grpc.ServiceRegistrar, srv ApprovalServiceServer) {
-	if srv != nil {
-		if _, ok := srv.(UnsafeApprovalServiceServer); ok {
-			panic("ApprovalServiceServer must not implement UnsafeApprovalServiceServer")
-		}
-	}
 	s.RegisterService(&ApprovalService_ServiceDesc, srv)
 }
 

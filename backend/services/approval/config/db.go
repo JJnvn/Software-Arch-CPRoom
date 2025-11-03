@@ -27,6 +27,10 @@ func ConnectDB() *gorm.DB {
 		log.Fatalf("failed to connect to DB: %v", err)
 	}
 
+	if err := db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`).Error; err != nil {
+		log.Fatalf("failed to ensure uuid-ossp extension: %v", err)
+	}
+
 	log.Println("Connected to PostgreSQL (approval service)")
 	return db
 }
