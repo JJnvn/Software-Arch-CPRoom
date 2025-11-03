@@ -46,8 +46,10 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
+      BOOKING_HTTP_PORT: ${BOOKING_HTTP_PORT}
       BOOKING_SERVICE_PORT: ${BOOKING_SERVICE_PORT}
     ports:
+      - "${BOOKING_HTTP_PORT}:8083"
       - "${BOOKING_SERVICE_PORT}:50051"
     depends_on:
       postgres:
@@ -73,8 +75,101 @@ services:
     networks:
       - cproom_net
 
+  approval-service:
+    build: ./services/approval
+    container_name: cproom-approval-service
+    env_file:
+      - .env
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      APPROVAL_HTTP_PORT: ${APPROVAL_HTTP_PORT}
+      APPROVAL_SERVICE_PORT: ${APPROVAL_SERVICE_PORT:-50052}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL}
+      SERVICE_API_TOKEN: ${SERVICE_API_TOKEN}
+    ports:
+      - "${APPROVAL_HTTP_PORT}:8085"
+      - "${APPROVAL_SERVICE_PORT:-50052}:50052"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cproom_net
+
+  mongo:
+    image: mongo:7
+    container_name: cproom-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - cproom_net
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: cproom-mongo-express
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME:-}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-}
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USER}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD}
+    ports:
+      - "${MONGO_EXPRESS_PORT:-8086}:8081"
+    depends_on:
+      - mongo
+    networks:
+      - cproom_net
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: cproom-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - cproom_net
+
+  notification-service:
+    build: ./services/notification
+    container_name: cproom-notification-service
+    env_file:
+      - .env
+    environment:
+      MONGO_URI: ${MONGO_URI}
+      MONGO_DB_NAME: ${MONGO_DB_NAME}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+      RABBITMQ_QUEUE_NAME: ${RABBITMQ_QUEUE_NAME}
+      RABBITMQ_EVENTS_QUEUE_NAME: ${RABBITMQ_EVENTS_QUEUE_NAME:-notification_events}
+      NOTIFICATION_SERVICE_PORT: ${NOTIFICATION_SERVICE_PORT}
+      NOTIFICATION_DEFAULT_EMAIL: ${NOTIFICATION_DEFAULT_EMAIL}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_INTERNAL_URL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT}:8084"
+    depends_on:
+      - mongo
+      - rabbitmq
+    networks:
+      - cproom_net
+
 volumes:
   postgres_data:
+  mongo_data:
 
 networks:
   cproom_net:
