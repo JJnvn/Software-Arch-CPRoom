@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 
+	events "github.com/JJnvn/Software-Arch-CPRoom/backend/libs/events"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/booking/config"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/booking/internal"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/booking/models"
@@ -25,7 +26,16 @@ func main() {
 
 	// Layers
 	repo := internal.NewBookingRepository(db)
-	service := internal.NewBookingService(repo)
+	publisher, err := events.NewRabbitPublisher(
+		os.Getenv("RABBITMQ_URL"),
+		events.WithQueueName(os.Getenv("NOTIFICATION_EVENTS_QUEUE")),
+	)
+	if err != nil {
+		log.Fatalf("failed to connect notification publisher: %v", err)
+	}
+	defer publisher.Close()
+
+	service := internal.NewBookingService(repo, publisher)
 	handler := internal.NewBookingHandler(service)
 
 	httpPort := os.Getenv("BOOKING_HTTP_PORT")

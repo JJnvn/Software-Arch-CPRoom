@@ -42,8 +42,9 @@ func (r *ApprovalRepository) ListPendingBookings() ([]PendingBooking, error) {
 	return rows, err
 }
 
-func (r *ApprovalRepository) setBookingStatus(bookingID uuid.UUID, status string, staffID uuid.UUID, reason string, action string) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *ApprovalRepository) setBookingStatus(bookingID uuid.UUID, status string, staffID uuid.UUID, reason string, action string) (*models.Booking, error) {
+	var updated *models.Booking
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 		var booking models.Booking
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&booking, "id = ?", bookingID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -71,15 +72,21 @@ func (r *ApprovalRepository) setBookingStatus(bookingID uuid.UUID, status string
 			Action:    action,
 			Reason:    reason,
 		}
-		return tx.Create(event).Error
+		if err := tx.Create(event).Error; err != nil {
+			return err
+		}
+
+		updated = &booking
+		return nil
 	})
+	return updated, err
 }
 
-func (r *ApprovalRepository) ApproveBooking(bookingID, staffID uuid.UUID) error {
+func (r *ApprovalRepository) ApproveBooking(bookingID, staffID uuid.UUID) (*models.Booking, error) {
 	return r.setBookingStatus(bookingID, models.StatusConfirmed, staffID, "", models.AuditActionApproved)
 }
 
-func (r *ApprovalRepository) DenyBooking(bookingID, staffID uuid.UUID, reason string) error {
+func (r *ApprovalRepository) DenyBooking(bookingID, staffID uuid.UUID, reason string) (*models.Booking, error) {
 	return r.setBookingStatus(bookingID, models.StatusDenied, staffID, reason, models.AuditActionDenied)
 }
 

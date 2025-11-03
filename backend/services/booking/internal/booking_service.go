@@ -3,8 +3,10 @@ package internal
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
+	events "github.com/JJnvn/Software-Arch-CPRoom/backend/libs/events"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/booking/models"
 	pb "github.com/JJnvn/Software-Arch-CPRoom/backend/services/booking/proto"
 	"github.com/google/uuid"
@@ -15,12 +17,32 @@ import (
 )
 
 type BookingService struct {
-	repo *BookingRepository
+	repo      *BookingRepository
+	publisher events.Publisher
 	pb.UnimplementedBookingServiceServer
 }
 
-func NewBookingService(repo *BookingRepository) *BookingService {
-	return &BookingService{repo: repo}
+func NewBookingService(repo *BookingRepository, publisher events.Publisher) *BookingService {
+	return &BookingService{repo: repo, publisher: publisher}
+}
+
+func (s *BookingService) publishBookingEvent(ctx context.Context, booking *models.Booking, event string, metadata map[string]any) {
+	if s.publisher == nil || booking == nil {
+		return
+	}
+	payload := events.BookingEvent{
+		Event:     event,
+		BookingID: booking.ID.String(),
+		UserID:    booking.UserID.String(),
+		RoomID:    booking.RoomID.String(),
+		Status:    booking.Status,
+		StartTime: booking.StartTime,
+		EndTime:   booking.EndTime,
+		Metadata:  metadata,
+	}
+	if err := s.publisher.PublishBookingEvent(ctx, payload); err != nil {
+		log.Printf("failed to publish booking event %s: %v", event, err)
+	}
 }
 
 func (s *BookingService) SearchRooms(ctx context.Context, req *pb.SearchRoomsRequest) (*pb.SearchRoomsResponse, error) {
@@ -104,6 +126,8 @@ func (s *BookingService) CreateBooking(ctx context.Context, req *pb.CreateBookin
 		}
 	}
 
+	s.publishBookingEvent(ctx, booking, events.BookingCreatedEvent, nil)
+
 	return &pb.CreateBookingResponse{
 		BookingId: booking.ID.String(),
 		UserId:    booking.UserID.String(),
@@ -171,6 +195,9 @@ func (s *BookingService) CancelBooking(ctx context.Context, req *pb.CancelBookin
 		return nil, status.Errorf(codes.Internal, "failed to cancel booking: %v", err)
 	}
 
+	booking.Status = models.StatusCancelled
+	s.publishBookingEvent(ctx, booking, events.BookingCancelledEvent, nil)
+
 	return &pb.CancelBookingResponse{Success: true}, nil
 }
 
@@ -223,6 +250,10 @@ func (s *BookingService) UpdateBooking(ctx context.Context, req *pb.UpdateBookin
 			return nil, status.Errorf(codes.Internal, "failed to update booking: %v", err)
 		}
 	}
+
+	booking.StartTime = newStart
+	booking.EndTime = newEnd
+	s.publishBookingEvent(ctx, booking, events.BookingUpdatedEvent, nil)
 
 	return &pb.UpdateBookingResponse{Success: true}, nil
 }

@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 
+	events "github.com/JJnvn/Software-Arch-CPRoom/backend/libs/events"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/approval/config"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/approval/internal"
 	approvalmodels "github.com/JJnvn/Software-Arch-CPRoom/backend/services/approval/models"
@@ -21,7 +22,16 @@ func main() {
 	db.AutoMigrate(&approvalmodels.ApprovalAudit{})
 
 	repo := internal.NewApprovalRepository(db)
-	service := internal.NewApprovalService(repo)
+	publisher, err := events.NewRabbitPublisher(
+		os.Getenv("RABBITMQ_URL"),
+		events.WithQueueName(os.Getenv("NOTIFICATION_EVENTS_QUEUE")),
+	)
+	if err != nil {
+		log.Fatalf("failed to connect notification publisher: %v", err)
+	}
+	defer publisher.Close()
+
+	service := internal.NewApprovalService(repo, publisher)
 	handler := internal.NewApprovalHandler(service)
 
 	httpPort := os.Getenv("APPROVAL_HTTP_PORT")

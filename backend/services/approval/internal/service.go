@@ -3,7 +3,10 @@ package internal
 import (
 	"context"
 	"errors"
+	"log"
 
+	events "github.com/JJnvn/Software-Arch-CPRoom/backend/libs/events"
+	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/approval/models"
 	pb "github.com/JJnvn/Software-Arch-CPRoom/backend/services/approval/proto"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -12,12 +15,32 @@ import (
 )
 
 type ApprovalService struct {
-	repo *ApprovalRepository
+	repo      *ApprovalRepository
+	publisher events.Publisher
 	pb.UnimplementedApprovalServiceServer
 }
 
-func NewApprovalService(repo *ApprovalRepository) *ApprovalService {
-	return &ApprovalService{repo: repo}
+func NewApprovalService(repo *ApprovalRepository, publisher events.Publisher) *ApprovalService {
+	return &ApprovalService{repo: repo, publisher: publisher}
+}
+
+func (s *ApprovalService) publishBookingEvent(ctx context.Context, booking *models.Booking, event string, metadata map[string]any) {
+	if s.publisher == nil || booking == nil {
+		return
+	}
+	payload := events.BookingEvent{
+		Event:     event,
+		BookingID: booking.ID.String(),
+		UserID:    booking.UserID.String(),
+		RoomID:    booking.RoomID.String(),
+		Status:    booking.Status,
+		StartTime: booking.StartTime,
+		EndTime:   booking.EndTime,
+		Metadata:  metadata,
+	}
+	if err := s.publisher.PublishBookingEvent(ctx, payload); err != nil {
+		log.Printf("failed to publish approval event %s: %v", event, err)
+	}
 }
 
 func (s *ApprovalService) ListPending(ctx context.Context, req *pb.ListPendingRequest) (*pb.ListPendingResponse, error) {
@@ -50,7 +73,7 @@ func (s *ApprovalService) ApproveBooking(ctx context.Context, req *pb.ApproveReq
 		return nil, status.Error(codes.InvalidArgument, "invalid staff_id")
 	}
 
-	err = s.repo.ApproveBooking(bookingID, staffID)
+	booking, err := s.repo.ApproveBooking(bookingID, staffID)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrBookingNotFound):
@@ -63,6 +86,10 @@ func (s *ApprovalService) ApproveBooking(ctx context.Context, req *pb.ApproveReq
 			return nil, status.Errorf(codes.Internal, "failed to approve booking: %v", err)
 		}
 	}
+
+	s.publishBookingEvent(ctx, booking, events.BookingApprovedEvent, map[string]any{
+		"staff_id": staffID.String(),
+	})
 
 	return &pb.ApproveResponse{Success: true}, nil
 }
@@ -83,7 +110,7 @@ func (s *ApprovalService) DenyBooking(ctx context.Context, req *pb.DenyRequest) 
 		return nil, status.Error(codes.InvalidArgument, "reason is required when denying a booking")
 	}
 
-	err = s.repo.DenyBooking(bookingID, staffID, reason)
+	booking, err := s.repo.DenyBooking(bookingID, staffID, reason)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrBookingNotFound):
@@ -96,6 +123,11 @@ func (s *ApprovalService) DenyBooking(ctx context.Context, req *pb.DenyRequest) 
 			return nil, status.Errorf(codes.Internal, "failed to deny booking: %v", err)
 		}
 	}
+
+	s.publishBookingEvent(ctx, booking, events.BookingDeniedEvent, map[string]any{
+		"staff_id": staffID.String(),
+		"reason":   reason,
+	})
 
 	return &pb.DenyResponse{Success: true}, nil
 }
