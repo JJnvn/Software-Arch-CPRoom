@@ -20,6 +20,10 @@ func NewApprovalHandler(service *ApprovalService) *ApprovalHandler {
 }
 
 func (h *ApprovalHandler) ListPending(c *fiber.Ctx) error {
+	if _, err := requireAdminClaims(c); err != nil {
+		return respondError(c, err)
+	}
+
 	resp, err := h.service.ListPending(c.Context(), &pb.ListPendingRequest{
 		StaffId: c.Query("staff_id"),
 	})
@@ -96,6 +100,10 @@ func (h *ApprovalHandler) Deny(c *fiber.Ctx) error {
 }
 
 func (h *ApprovalHandler) AuditTrail(c *fiber.Ctx) error {
+	if _, err := requireAdminClaims(c); err != nil {
+		return respondError(c, err)
+	}
+
 	resp, err := h.service.GetAuditTrail(c.Context(), &pb.GetAuditTrailRequest{
 		BookingId: c.Params("booking_id"),
 	})
