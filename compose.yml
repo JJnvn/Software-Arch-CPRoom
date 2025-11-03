@@ -65,8 +65,10 @@ services:
     image: nginx:stable-alpine
     ports:
       - "18080:80"
+      - "${WEB_HTTPS_PORT:-3443}:443"
     volumes:
       - ./ingress:/etc/nginx/conf.d
+      - ./backend/kong/certs:/etc/nginx/certs:ro
     depends_on:
       - web
       - pgadmin

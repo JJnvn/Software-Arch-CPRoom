@@ -7,6 +7,7 @@ toolchain go1.24.7
 require (
 	github.com/JJnvn/Software-Arch-CPRoom/backend v0.0.0
 	github.com/gofiber/fiber/v2 v2.52.9
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	google.golang.org/grpc v1.75.1

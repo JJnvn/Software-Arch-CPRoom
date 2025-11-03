@@ -69,6 +69,13 @@ backend/
     -   `go mod init github.com/JJnvn/Software-Arch-CPRoom/backend`
     -   Ensures all services can import shared proto code consistently.
 
+-   **API Gateway (Kong)**
+
+    -   DB-less Kong gateway lives under `backend/kong/`
+    -   Declarative config `kong.yml` wires services, routes, and JWT enforcement
+    -   Kong Manager OSS is exposed on `http://localhost:8002` (and `https://localhost:8445`)
+    -   Proxy traffic via `https://localhost:8443`; JWTs issued by the auth service are validated at the edge
+
 -   **Auth Service**
 
     -   Handles `register`, `login`, and `validate` endpoints via REST

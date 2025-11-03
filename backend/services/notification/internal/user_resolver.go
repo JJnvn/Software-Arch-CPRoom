@@ -5,13 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
 
 type UserResolver struct {
-	baseURL    string
-	httpClient *http.Client
+	baseURL      string
+	httpClient   *http.Client
+	serviceToken string
 }
 
 func NewUserResolver(baseURL string) *UserResolver {
@@ -24,6 +26,7 @@ func NewUserResolver(baseURL string) *UserResolver {
 		httpClient: &http.Client{
 			Timeout: 3 * time.Second,
 		},
+		serviceToken: strings.TrimSpace(os.Getenv("SERVICE_API_TOKEN")),
 	}
 }
 
@@ -44,6 +47,10 @@ func (r *UserResolver) ResolveEmail(ctx context.Context, userID string) (string,
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/auth/users/%s", r.baseURL, userID), nil)
 	if err != nil {
 		return "", err
+	}
+
+	if r.serviceToken != "" {
+		req.Header.Set("X-Service-Token", r.serviceToken)
 	}
 
 	resp, err := r.httpClient.Do(req)

@@ -43,6 +43,7 @@ func main() {
 
 	app.Get("/auth/my-profile", middleware.AuthMiddleware(service, models.USER, models.ADMIN), handler.MyProfile)
 	app.Get("/auth/logout", handler.Logout)
+	app.Get("/auth/users/:id", handler.GetUserByID)
 
 	// admin routes
 	app.Post("/auth/admin/register", middleware.AuthMiddleware(service, models.ADMIN), handler.AdminRegister)

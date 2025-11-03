@@ -20,6 +20,12 @@ type AuthService struct {
 	oauthCfg *oauth2.Config
 }
 
+type Claims struct {
+	Email string `json:"email"`
+	Role  string `json:"role"`
+	jwt.RegisteredClaims
+}
+
 func NewAuthService(
 	repo *AuthRepository,
 	cfg *oauth2.Config,
@@ -57,7 +63,7 @@ func (s *AuthService) Login(email, password string) (*models.User, string, error
 		return nil, "", errors.New("invalid email or password")
 	}
 
-	token, err := s.GenerateJWT(user.Email, user.Role)
+	token, err := s.GenerateJWT(user)
 	if err != nil {
 		return nil, "", err
 	}
@@ -115,32 +121,68 @@ func (s *AuthService) GetByEmail(email string) (*models.User, error) {
 	return s.repo.FindByEmail(email)
 }
 
-func (s *AuthService) GenerateJWT(email, role string) (string, error) {
-	secret := os.Getenv("JWT_SECRET")
+func (s *AuthService) GetByID(id string) (*models.User, error) {
+	if id == "" {
+		return nil, errors.New("id is required")
+	}
+	return s.repo.FindByID(id)
+}
 
-	claims := jwt.MapClaims{
-		"email": email,
-		"role":  role,
-		"exp":   time.Now().Add(7 * 24 * time.Hour).Unix(),
+func (s *AuthService) GenerateJWT(user *models.User) (string, error) {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return "", errors.New("jwt secret missing")
+	}
+
+	issuer := os.Getenv("JWT_ISSUER")
+	if issuer == "" {
+		issuer = "cproom-auth"
+	}
+
+	now := time.Now()
+	claims := &Claims{
+		Email: user.Email,
+		Role:  user.Role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   user.ID,
+			Issuer:    issuer,
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(7 * 24 * time.Hour)),
+		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secret))
 }
 
-func (s *AuthService) ParseJWT(tokenString string) (jwt.MapClaims, error) {
+func (s *AuthService) ParseJWT(tokenString string) (*Claims, error) {
 	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return nil, errors.New("jwt secret missing")
+	}
 
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		return []byte(secret), nil
-	})
+	expectedIssuer := os.Getenv("JWT_ISSUER")
+	if expectedIssuer == "" {
+		expectedIssuer = "cproom-auth"
+	}
+
+	claims := &Claims{}
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		claims,
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(secret), nil
+		},
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithIssuedAt(),
+		jwt.WithExpirationRequired(),
+	)
 	if err != nil || !token.Valid {
 		return nil, errors.New("invalid token")
 	}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return nil, errors.New("invalid claims")
+	if claims.Issuer != expectedIssuer {
+		return nil, errors.New("invalid token issuer")
 	}
 
 	return claims, nil

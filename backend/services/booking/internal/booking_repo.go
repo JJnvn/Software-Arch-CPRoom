@@ -54,10 +54,7 @@ func (r *BookingRepository) Create(b *models.Booking) error {
 		var count int64
 		if err := tx.Model(&models.Booking{}).
 			Where("room_id = ?", b.RoomID).
-			Where("status IN ?", []string{
-				models.StatusPending, // block overlapping pending bookings as well
-				models.StatusConfirmed,
-			}).
+			Where("status = ?", models.StatusConfirmed).
 			Where("start_time < ? AND end_time > ?", b.EndTime, b.StartTime).
 			Count(&count).Error; err != nil {
 			return err
@@ -172,10 +169,7 @@ func (r *BookingRepository) SearchAvailableRooms(start, end time.Time, capacity,
 		subQuery := r.db.Table("bookings").
 			Select("1").
 			Where("bookings.room_id = rooms.id").
-			Where("bookings.status IN ?", []string{
-				models.StatusPending,
-				models.StatusConfirmed,
-			}).
+			Where("bookings.status = ?", models.StatusConfirmed).
 			Where("bookings.start_time < ? AND bookings.end_time > ?", end, start)
 		query = query.Where("NOT EXISTS (?)", subQuery)
 	}

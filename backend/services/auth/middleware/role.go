@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"strings"
+
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/internal"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/models"
 	"github.com/gofiber/fiber/v2"
@@ -8,7 +10,16 @@ import (
 
 func AuthMiddleware(service *internal.AuthService, roles ...string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		tokenStr := c.Cookies(models.TOKEN)
+		var tokenStr string
+
+		authHeader := c.Get("Authorization")
+		if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+			tokenStr = strings.TrimSpace(authHeader[7:])
+		}
+
+		if tokenStr == "" {
+			tokenStr = c.Cookies(models.TOKEN)
+		}
 
 		if tokenStr == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "missing token"})
@@ -19,9 +30,10 @@ func AuthMiddleware(service *internal.AuthService, roles ...string) fiber.Handle
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid token"})
 		}
 
-		email, okEmail := claims["email"].(string)
-		role, okRole := claims["role"].(string)
-		if !okEmail || !okRole {
+		email := claims.Email
+		role := claims.Role
+
+		if email == "" || role == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid claims"})
 		}
 
@@ -40,6 +52,7 @@ func AuthMiddleware(service *internal.AuthService, roles ...string) fiber.Handle
 
 		c.Locals("email", email)
 		c.Locals("role", role)
+		c.Locals("userID", claims.Subject)
 
 		return c.Next()
 	}
