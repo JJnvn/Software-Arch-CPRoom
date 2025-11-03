@@ -60,10 +60,15 @@ func (r *ApprovalRepository) setBookingStatus(bookingID uuid.UUID, status string
 			return ErrAlreadyProcessed
 		}
 
-		booking.Status = status
-		if err := tx.Save(&booking).Error; err != nil {
+		now := time.Now().UTC()
+		if err := tx.Model(&booking).Updates(map[string]any{
+			"status":     status,
+			"updated_at": now,
+		}).Error; err != nil {
 			return err
 		}
+		booking.Status = status
+		booking.UpdatedAt = now
 
 		event := &models.ApprovalAudit{
 			ID:        uuid.New(),

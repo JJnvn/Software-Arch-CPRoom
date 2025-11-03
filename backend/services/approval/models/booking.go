@@ -19,4 +19,6 @@ type Booking struct {
 	StartTime time.Time
 	EndTime   time.Time
 	Status    string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }

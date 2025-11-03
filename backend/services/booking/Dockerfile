@@ -1,28 +1,21 @@
 # Build stage
 FROM golang:1.25-alpine AS builder
 
-WORKDIR /app
+WORKDIR /app/backend
 
-# Copy go.mod and go.sum first
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Copy rest of the code
 COPY . .
 
-# Build binary
-RUN go build -o booking-service ./cmd/server.go
+WORKDIR /app/backend/services/booking
+
+RUN go build -o /booking-service ./cmd/server.go
 
 # Run stage
 FROM debian:bookworm-slim
 
 WORKDIR /root/
 
-# Copy binary from builder
-COPY --from=builder /app/booking-service .
+COPY --from=builder /booking-service .
 
-# Expose gRPC port
-EXPOSE 50051
+EXPOSE 8083 50051
 
-# Run command
 CMD ["./booking-service"]

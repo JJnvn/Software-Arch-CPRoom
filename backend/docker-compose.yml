@@ -19,7 +19,9 @@ services:
       retries: 5
 
   auth-service:
-    build: ./services/auth
+    build:
+      context: .
+      dockerfile: ./services/auth/Dockerfile
     container_name: cproom-auth-service
     env_file:
       - .env
@@ -38,7 +40,9 @@ services:
       - cproom_net
 
   booking-service:
-    build: ./services/booking
+    build:
+      context: .
+      dockerfile: ./services/booking/Dockerfile
     container_name: cproom-booking-service
     environment:
       DB_HOST: ${DB_HOST}
@@ -58,7 +62,9 @@ services:
       - cproom_net
 
   room-service:
-    build: ./services/room
+    build:
+      context: .
+      dockerfile: ./services/room/Dockerfile
     container_name: cproom-room-service
     environment:
       DB_HOST: ${DB_HOST}
@@ -76,7 +82,9 @@ services:
       - cproom_net
 
   approval-service:
-    build: ./services/approval
+    build:
+      context: .
+      dockerfile: ./services/approval/Dockerfile
     container_name: cproom-approval-service
     env_file:
       - .env
@@ -141,7 +149,9 @@ services:
       - cproom_net
 
   notification-service:
-    build: ./services/notification
+    build:
+      context: .
+      dockerfile: ./services/notification/Dockerfile
     container_name: cproom-notification-service
     env_file:
       - .env
