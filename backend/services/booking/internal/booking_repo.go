@@ -14,6 +14,8 @@ import (
 var (
 	// ErrTimeSlotUnavailable is returned when a room is already booked (confirmed) for the requested window.
 	ErrTimeSlotUnavailable = errors.New("room is not available for the requested time window")
+	ErrRoomNotFound        = errors.New("room not found")
+	ErrUserNotFound        = errors.New("user not found")
 )
 
 type BookingRepository struct {
@@ -33,10 +35,29 @@ func NewBookingRepository(db *gorm.DB) *BookingRepository {
 
 func (r *BookingRepository) Create(b *models.Booking) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		var roomCount int64
+		if err := tx.Table("rooms").Where("id = ?", b.RoomID).Count(&roomCount).Error; err != nil {
+			return err
+		}
+		if roomCount == 0 {
+			return ErrRoomNotFound
+		}
+
+		var userCount int64
+		if err := tx.Table("users").Where("id = ?", b.UserID).Count(&userCount).Error; err != nil {
+			return err
+		}
+		if userCount == 0 {
+			return ErrUserNotFound
+		}
+
 		var count int64
 		if err := tx.Model(&models.Booking{}).
 			Where("room_id = ?", b.RoomID).
-			Where("status = ?", models.StatusConfirmed).
+			Where("status IN ?", []string{
+				models.StatusPending, // block overlapping pending bookings as well
+				models.StatusConfirmed,
+			}).
 			Where("start_time < ? AND end_time > ?", b.EndTime, b.StartTime).
 			Count(&count).Error; err != nil {
 			return err
@@ -151,7 +172,10 @@ func (r *BookingRepository) SearchAvailableRooms(start, end time.Time, capacity,
 		subQuery := r.db.Table("bookings").
 			Select("1").
 			Where("bookings.room_id = rooms.id").
-			Where("bookings.status = ?", models.StatusConfirmed).
+			Where("bookings.status IN ?", []string{
+				models.StatusPending,
+				models.StatusConfirmed,
+			}).
 			Where("bookings.start_time < ? AND bookings.end_time > ?", end, start)
 		query = query.Where("NOT EXISTS (?)", subQuery)
 	}

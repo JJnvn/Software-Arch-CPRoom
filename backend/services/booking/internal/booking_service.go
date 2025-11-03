@@ -121,6 +121,10 @@ func (s *BookingService) CreateBooking(ctx context.Context, req *pb.CreateBookin
 		switch {
 		case errors.Is(err, ErrTimeSlotUnavailable):
 			return nil, status.Error(codes.FailedPrecondition, "room is not available for the requested time window")
+		case errors.Is(err, ErrRoomNotFound):
+			return nil, status.Error(codes.NotFound, "room not found")
+		case errors.Is(err, ErrUserNotFound):
+			return nil, status.Error(codes.NotFound, "user not found")
 		default:
 			return nil, status.Errorf(codes.Internal, "failed to create booking: %v", err)
 		}
