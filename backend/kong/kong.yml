@@ -1,6 +1,30 @@
 _format_version: "3.0"
 _transform: true
 
+# global plugins (applies to every service/route)
+plugins:
+  - name: cors
+    config:
+      origins:
+        - http://localhost:5173
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Accept
+        - Authorization
+        - Content-Type
+        - Origin
+      exposed_headers:
+        - Content-Length
+        - Content-Range
+      credentials: true
+      max_age: 3600
+
 certificates:
   - cert: |
       -----BEGIN CERTIFICATE-----

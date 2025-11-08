@@ -11,7 +11,7 @@ export async function register(payload: { name: string; email: string; password:
 }
 
 export async function logout() {
-  const { data } = await api.post('/auth/logout');
+  const { data } = await api.get('/auth/logout');
   return data;
 }
 
