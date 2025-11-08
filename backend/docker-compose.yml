@@ -19,7 +19,9 @@ services:
       retries: 5
 
   auth-service:
-    build: ./services/auth
+    build:
+      context: .
+      dockerfile: ./services/auth/Dockerfile
     container_name: cproom-auth-service
     env_file:
       - .env
@@ -38,7 +40,9 @@ services:
       - cproom_net
 
   booking-service:
-    build: ./services/booking
+    build:
+      context: .
+      dockerfile: ./services/booking/Dockerfile
     container_name: cproom-booking-service
     environment:
       DB_HOST: ${DB_HOST}
@@ -46,17 +50,23 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
+      BOOKING_HTTP_PORT: ${BOOKING_HTTP_PORT}
       BOOKING_SERVICE_PORT: ${BOOKING_SERVICE_PORT}
     ports:
+      - "${BOOKING_HTTP_PORT}:8083"
       - "${BOOKING_SERVICE_PORT}:50051"
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - cproom_net
 
   room-service:
-    build: ./services/room
+    build:
+      context: .
+      dockerfile: ./services/room/Dockerfile
     container_name: cproom-room-service
     environment:
       DB_HOST: ${DB_HOST}
@@ -73,8 +83,150 @@ services:
     networks:
       - cproom_net
 
+  approval-service:
+    build:
+      context: .
+      dockerfile: ./services/approval/Dockerfile
+    container_name: cproom-approval-service
+    env_file:
+      - .env
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      APPROVAL_HTTP_PORT: ${APPROVAL_HTTP_PORT}
+      APPROVAL_SERVICE_PORT: ${APPROVAL_SERVICE_PORT:-50052}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL}
+      SERVICE_API_TOKEN: ${SERVICE_API_TOKEN}
+    ports:
+      - "${APPROVAL_HTTP_PORT}:8085"
+      - "${APPROVAL_SERVICE_PORT:-50052}:50052"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cproom_net
+
+  mongo:
+    image: mongo:7
+    container_name: cproom-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - cproom_net
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: cproom-mongo-express
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME:-}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-}
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USER}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD}
+    ports:
+      - "${MONGO_EXPRESS_PORT:-8086}:8081"
+    depends_on:
+      - mongo
+    networks:
+      - cproom_net
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: cproom-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+    networks:
+      - cproom_net
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: ./services/notification/Dockerfile
+    container_name: cproom-notification-service
+    env_file:
+      - .env
+    environment:
+      MONGO_URI: ${MONGO_URI}
+      MONGO_DB_NAME: ${MONGO_DB_NAME}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+      RABBITMQ_QUEUE_NAME: ${RABBITMQ_QUEUE_NAME}
+      RABBITMQ_EVENTS_QUEUE_NAME: ${RABBITMQ_EVENTS_QUEUE_NAME:-notification_events}
+      NOTIFICATION_SERVICE_PORT: ${NOTIFICATION_SERVICE_PORT}
+      NOTIFICATION_DEFAULT_EMAIL: ${NOTIFICATION_DEFAULT_EMAIL}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_INTERNAL_URL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT}:8084"
+    depends_on:
+      mongo:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cproom_net
+
+  api-gateway:
+    image: kong:3.6
+    container_name: cproom-api-gateway
+    depends_on:
+      - auth-service
+      - booking-service
+      - room-service
+      - notification-service
+      - approval-service
+    env_file:
+      - .env
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
+      KONG_PROXY_LISTEN: 0.0.0.0:8000 reuseport, 0.0.0.0:8443 ssl reuseport
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001 reuseport, 0.0.0.0:8444 ssl reuseport
+      KONG_ADMIN_GUI_LISTEN: 0.0.0.0:${KONG_MANAGER_PORT:-8002} reuseport, 0.0.0.0:8445 ssl reuseport
+      KONG_ADMIN_GUI_URL: http://localhost:${KONG_MANAGER_PORT:-8002}
+      KONG_ADMIN_SSL_CERT: /etc/kong/certs/dev-kong.crt
+      KONG_ADMIN_SSL_CERT_KEY: /etc/kong/certs/dev-kong.key
+      KONG_ADMIN_GUI_SSL_CERT: /etc/kong/certs/dev-kong.crt
+      KONG_ADMIN_GUI_SSL_CERT_KEY: /etc/kong/certs/dev-kong.key
+      KONG_LOG_LEVEL: info
+    ports:
+      - "${API_GATEWAY_HTTP_PORT:-8000}:8000"
+      - "${API_GATEWAY_HTTPS_PORT:-8443}:8443"
+      - "8001:8001"
+      - "8444:8444"
+      - "${KONG_MANAGER_PORT:-8002}:8002"
+      - "8445:8445"
+    volumes:
+      - ./kong/kong.yml:/etc/kong/kong.yml:ro
+      - ./kong/certs:/etc/kong/certs:ro
+    networks:
+      - cproom_net
+
 volumes:
   postgres_data:
+  mongo_data:
 
 networks:
   cproom_net:

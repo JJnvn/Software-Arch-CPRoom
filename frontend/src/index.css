@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Simple layout helpers */
+.page {
+  @apply p-6;
+}
+.page-title {
+  @apply text-2xl font-semibold mb-4;
+}
+.card {
+  @apply bg-white rounded-lg shadow p-4;
+}
+

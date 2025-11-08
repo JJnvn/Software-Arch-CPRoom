@@ -42,6 +42,9 @@ cd backend
 air
 ```
 
+-   API Gateway (Kong) proxies the backend on `https://localhost:8443` with a self-signed certificate located in `backend/kong/certs`. Kong Manager OSS is available on `http://localhost:8002`.
+-   The web UI is now accessible over HTTPS at `https://localhost:3443` (same certificate).
+
 
 ## License
 

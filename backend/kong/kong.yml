@@ -1,0 +1,161 @@
+_format_version: "3.0"
+_transform: true
+
+# global plugins (applies to every service/route)
+plugins:
+  - name: cors
+    config:
+      origins:
+        - http://localhost:5173
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Accept
+        - Authorization
+        - Content-Type
+        - Origin
+      exposed_headers:
+        - Content-Length
+        - Content-Range
+      credentials: true
+      max_age: 3600
+
+certificates:
+  - cert: |
+      -----BEGIN CERTIFICATE-----
+      MIIDCTCCAfGgAwIBAgIUZ49SDop2MqH2ZNwYsLxEXlvA90owDQYJKoZIhvcNAQEL
+      BQAwFDESMBAGA1UEAwwJbG9jYWxob3N0MB4XDTI1MTEwMzE1MjA1OFoXDTI2MTEw
+      MzE1MjA1OFowFDESMBAGA1UEAwwJbG9jYWxob3N0MIIBIjANBgkqhkiG9w0BAQEF
+      AAOCAQ8AMIIBCgKCAQEAtcvk/5Xeoes7CuTwEN5DkevtoRQARqYhJiJ/qZrLywzF
+      Dori61nRNAWLmR7nK25TZCL0BcNu1FFdgte0Ye63PAEPAOqTfUl0UUBD6pCFHPIT
+      6Mgk3M8JaTPp2ypi6miSXHHM2pKD00flEw7NbW7OYF0qEstmLlMh96ZhwAEHkaF0
+      iARNMTMi5zUjRLEPdMp61O0p4jetdziwSURd9pKYrKekOukkYkIkkf5sjXg/+YoO
+      AXAJdQW5vRkXWWQG51U80STagdXwPBwVFlmsycBd9k0jvCJqz4WCZEFFox1kou19
+      KJOh2IkYpg3Hpd9ZEcC+PIu9La66ts1U2vRiFLpfewIDAQABo1MwUTAdBgNVHQ4E
+      FgQUV0N6PIQIZrkymraAxjoTXgpP6pMwHwYDVR0jBBgwFoAUV0N6PIQIZrkymraA
+      xjoTXgpP6pMwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAP5Qv
+      XBkyjqcUV8PgxvohSEFlllJ5fdfLNssUFcu5Xy4xjbvQyKfHI2nsEZwt9020iAUL
+      ogvBhuJM+Z0YKIio3pnKTK/ti2xfFBgBH3lgqi651IJAHsvGPeRK0F38DjHeBGAG
+      KSlnFBZ4AGX+uZTpf9MOIyHyLJxU/fkaiEb1bZFsLYk8CGUq+UNC37LkFAG1vCO5
+      C5RAGvNGXskXO1uCF4lmQcqXZmNUfLWz664KM8Xu29FWQousyE/gqexOazEtWeom
+      wEPI8DBl0Ggvvw+cZ5x4c7S9iUodOthBicbo2oQlDk0i/FAxxWcuQr3+6EukPgad
+      b7bmzIZn6Yn6T34c/A==
+      -----END CERTIFICATE-----
+    key: |
+      -----BEGIN PRIVATE KEY-----
+      MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC1y+T/ld6h6zsK
+      5PAQ3kOR6+2hFABGpiEmIn+pmsvLDMUOiuLrWdE0BYuZHucrblNkIvQFw27UUV2C
+      17Rh7rc8AQ8A6pN9SXRRQEPqkIUc8hPoyCTczwlpM+nbKmLqaJJccczakoPTR+UT
+      Ds1tbs5gXSoSy2YuUyH3pmHAAQeRoXSIBE0xMyLnNSNEsQ90ynrU7SniN613OLBJ
+      RF32kpisp6Q66SRiQiSR/myNeD/5ig4BcAl1Bbm9GRdZZAbnVTzRJNqB1fA8HBUW
+      WazJwF32TSO8ImrPhYJkQUWjHWSi7X0ok6HYiRimDcel31kRwL48i70trrq2zVTa
+      9GIUul97AgMBAAECggEAH7f/7/ILoo+iwQ9ZrW/CNVMHJmwRckIpFXi+cm6eMQK8
+      3QExf2Ov4xY2mZQxPDwnE5kfn2POUgASQzJ0eAPI95Ctt/i1nA31W/nM/7+QYhEA
+      lURaXiZHW5IhssoN8R0msDdwyQ/4LSRlnPIfuIC1RE3s+dOANAPwML/YXUIwumE4
+      ZoiuzfTmPRUC8RNdzq/6RWN5LVb7oTcBQz5vIjv6uErk5Mt02nDyjCUMEdTwHquV
+      i3XwoPFO5p8vHJ2IFtgI+iUikGHUUl813KDKX6koGPzARsggHEMh1RlbAEPJM2Ho
+      m6YaSj+hPyQpMMkVcRKjly2DhM9mPLPziEdBxqBikQKBgQDYLLWEfi6cTiQSro0I
+      gkTDCMbCcElBc/M7/RODlAmKQGEoUzkGEX07zjKGrqwMAsPBI0ZP7HxZQbx3e2Cs
+      mMeA91uMcyf57N+IPA7hs0rm/e8GEsY1FJXuCivyXwrhaTzke8pFkc/DprNju4+q
+      9sOZ5KbInOE3q+AFjC16riCKEQKBgQDXSdTteBY95zrofKfluMa8GVnUJ/IBNztS
+      9KuT5wnblYMeaCrFFsEPBkbT6AWB1A6N0MZrRwHaL8yShzuFSL23UwF5AlLTXjD1
+      f+gmaTpgQQKY8UYdbh2p85XGwPLEQoUEgd/fk4dzZ/FH1IspNFeFLV2DLCKeynG4
+      e7Q4NtqkywKBgApOz3T641QWscemRRlTxN2b7IZW/lc9pSqGHckXZQEPotJebYip
+      itQwN96OM6v68cSi3vZuq1tCNC9qVajFPDYdFWN0FkLnlZ0UaA1BFGBBWYVrncHo
+      MmIAYCoVeBpZf0rR0EpS8po8t68YwXgAfkE3UvCb8m1KJ8t77Ks95FVRAoGBAIsM
+      DJIzdWoV5l4x5N7iMLlcRkBYbF2Mpqw1invERQGl10HUVYtl3tstWqGSwbvQknXV
+      2dF/0xpwtNgOr8qt6Jp26gSWE5igxU5Khk4IuMNiOaM+ceKgNFiIEryD8kgADpmS
+      qF1mk51eDOAvzpGWVNCXNEZ8Qv/8EObuPr/v7ddxAoGAJ46nTUR1ETx4iY3DlVQi
+      tmRsqkwZn+Pjk0AiBtgiDyfJL//VrtwKbTJ+kshIhqLhHZFytBf4aEmNwIK28BRn
+      DiLFxcYKHKOwAz5QDFLy3+Lz5xX5YTjgFjfbNFzPFulx+TBkR/Sn2POJ2ZrzRz2K
+      4FvB3eAYacW9Jqq6GrBKs5g=
+      -----END PRIVATE KEY-----
+    snis:
+      - name: localhost
+
+consumers:
+  - username: cproom-auth
+    custom_id: cproom-auth
+
+jwt_secrets:
+  - consumer: cproom-auth
+    key: cproom-auth
+    secret: dev-super-secret
+    algorithm: HS256
+
+services:
+  - name: auth-service
+    url: http://auth-service:8081
+    routes:
+      - name: auth-routes
+        paths:
+          - /auth
+        strip_path: false
+        preserve_host: false
+
+  - name: booking-service
+    url: http://booking-service:8083
+    routes:
+      - name: booking-routes
+        paths:
+          - /bookings
+          - /rooms/search
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify:
+                - exp
+
+  - name: room-service
+    url: http://room-service:8082
+    routes:
+      - name: room-routes
+        paths:
+          - /rooms
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify:
+                - exp
+
+  - name: notification-service
+    url: http://notification-service:8084
+    routes:
+      - name: notification-routes
+        paths:
+          - /notifications
+          - /preferences
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify:
+                - exp
+
+  - name: approval-service
+    url: http://approval-service:8085
+    routes:
+      - name: approval-routes
+        paths:
+          - /approvals
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify:
+                - exp

@@ -1,31 +1,24 @@
-# Use Go official image for building
+# Build stage
 FROM golang:1.25-alpine AS builder
 
-WORKDIR /app
+WORKDIR /app/backend
 
-# Copy go.mod and go.sum first for caching
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Copy the rest of the code
+# Copy the entire backend workspace so local replaces resolve
 COPY . .
 
-# Build the binary
-RUN go build -o auth-service ./cmd/server.go
+WORKDIR /app/backend/services/auth
 
-# Run stage with small image
+RUN go build -o /auth-service ./cmd/server.go
+
+# Runtime stage
 FROM debian:bookworm-slim
 
 WORKDIR /root/
 
-# Install CA certificates so Go can verify HTTPS
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
-# Copy binary from builder
-COPY --from=builder /app/auth-service .
+COPY --from=builder /auth-service .
 
-# Expose port
 EXPOSE 8081
 
-# Command to run
 CMD ["./auth-service"]

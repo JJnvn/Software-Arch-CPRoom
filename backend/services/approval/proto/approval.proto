@@ -2,14 +2,13 @@ syntax = "proto3";
 package approval;
 
 import "google/protobuf/timestamp.proto";
-option go_package = "github.com/JJnvn/Software-Arch-CPRoom/backend/proto;proto";
+option go_package = "github.com/JJnvn/Software-Arch-CPRoom/backend/services/approval/proto;proto";
 
 
 service ApprovalService {
   rpc ListPending(ListPendingRequest) returns (ListPendingResponse);
   rpc ApproveBooking(ApproveRequest) returns (ApproveResponse);
   rpc DenyBooking(DenyRequest) returns (DenyResponse);
-  rpc ReassignApprover(ReassignRequest) returns (ReassignResponse);
   rpc GetAuditTrail(GetAuditTrailRequest) returns (AuditTrailResponse);
 }
 
@@ -48,15 +47,6 @@ message DenyResponse {
   bool success = 1;
 }
 
-message ReassignRequest {
-  string booking_id = 1;
-  string new_staff_id = 2;
-}
-
-message ReassignResponse {
-  bool success = 1;
-}
-
 message GetAuditTrailRequest {
   string booking_id = 1;
 }
@@ -69,7 +59,7 @@ message AuditEvent {
   string event_id = 1;
   string booking_id = 2;
   string staff_id = 3;
-  string action = 4; // approve/deny/reassign
+  string action = 4;
   string reason = 5;
   google.protobuf.Timestamp created_at = 6;
 }

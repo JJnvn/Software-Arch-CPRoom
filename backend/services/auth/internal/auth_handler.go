@@ -1,9 +1,14 @@
 package internal
 
 import (
+	"errors"
+	"os"
+	"strings"
+
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/models"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/oauth2"
+	"gorm.io/gorm"
 )
 
 type AuthHandler struct {
@@ -52,6 +57,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"message": "login successful",
+		"token":   token,
 		"user": fiber.Map{
 			"id":    user.ID,
 			"name":  user.Name,
@@ -73,7 +79,7 @@ func (h *AuthHandler) GitHubCallback(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	token, err := h.service.GenerateJWT(user.Email, user.Role)
+	token, err := h.service.GenerateJWT(user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to generate token"})
 	}
@@ -82,6 +88,7 @@ func (h *AuthHandler) GitHubCallback(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"message": "GitHub login successful",
+		"token":   token,
 		"user": fiber.Map{
 			"id":    user.ID,
 			"name":  user.Name,
@@ -105,6 +112,53 @@ func (h *AuthHandler) MyProfile(c *fiber.Ctx) error {
 		"email": email,
 		"role":  user.Role,
 	})
+}
+
+func (h *AuthHandler) GetUserByID(c *fiber.Ctx) error {
+	if err := h.enforceServiceToken(c); err != nil {
+		return err
+	}
+
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "id is required"})
+	}
+
+	user, err := h.service.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "user not found"})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{
+		"id":    user.ID,
+		"name":  user.Name,
+		"email": user.Email,
+		"role":  user.Role,
+	})
+}
+
+func (h *AuthHandler) enforceServiceToken(c *fiber.Ctx) error {
+	expected := strings.TrimSpace(os.Getenv("SERVICE_API_TOKEN"))
+	if expected == "" {
+		return nil
+	}
+
+	provided := strings.TrimSpace(c.Get("X-Service-Token"))
+	if provided == "" {
+		authHeader := c.Get("Authorization")
+		if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+			provided = strings.TrimSpace(authHeader[7:])
+		}
+	}
+
+	if provided == "" || provided != expected {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid service token"})
+	}
+
+	return nil
 }
 
 func (h *AuthHandler) AdminRegister(c *fiber.Ctx) error {
@@ -136,7 +190,7 @@ func (h *AuthHandler) setAuthCookie(c *fiber.Ctx, token string) {
 		Value:    token,
 		Path:     "/",
 		HTTPOnly: true,
-		Secure:   false,
+		Secure:   true,
 		SameSite: "Lax",
 		MaxAge:   60 * 60 * 24 * 2, // 2 days
 	})
@@ -149,7 +203,7 @@ func (h *AuthHandler) clearAuthCookie(c *fiber.Ctx) {
 		Path:     "/",
 		MaxAge:   -1,
 		HTTPOnly: true,
-		Secure:   false,
+		Secure:   true,
 		SameSite: "Lax",
 	})
 }
