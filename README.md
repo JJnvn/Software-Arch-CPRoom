@@ -45,6 +45,20 @@ air
 -   API Gateway (Kong) proxies the backend on `https://localhost:8443` with a self-signed certificate located in `backend/kong/certs`. Kong Manager OSS is available on `http://localhost:8002`.
 -   The web UI is now accessible over HTTPS at `https://localhost:3443` (same certificate).
 
+### gRPC via Kong
+
+-   Gateway port `8443` now advertises HTTP/2, so gRPC clients can tunnel through Kong.
+-   Approval traffic is exposed only via gRPC; booking and the rest stay on REST/HTTP.
+-   Example (using `grpcurl`) to list pending approvals through the gateway:
+    ```bash
+    grpcurl \
+      -insecure \
+      -H "Authorization: Bearer <JWT>" \
+      localhost:8443 \
+      approval.ApprovalService/ListPending
+    ```
+    Replace `<JWT>` with an admin token issued by the auth service.
+
 
 ## License
 
