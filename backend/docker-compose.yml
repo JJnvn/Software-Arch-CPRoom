@@ -228,6 +228,54 @@ services:
     networks:
       - cproom_net
 
+  auth-openapi:
+    image: swaggerapi/swagger-ui:latest
+    container_name: cproom-auth-openapi
+    environment:
+      SWAGGER_JSON: /spec/openapi.yaml
+    volumes:
+      - ./services/auth/openapi.yaml:/spec/openapi.yaml:ro
+    ports:
+      - "9001:8080"
+    networks:
+      - cproom_net
+
+  booking-openapi:
+    image: swaggerapi/swagger-ui:latest
+    container_name: cproom-booking-openapi
+    environment:
+      SWAGGER_JSON: /spec/openapi.yaml
+    volumes:
+      - ./services/booking/openapi.yaml:/spec/openapi.yaml:ro
+    ports:
+      - "9002:8080"
+    networks:
+      - cproom_net
+
+  approval-openapi:
+    image: swaggerapi/swagger-ui:latest
+    container_name: cproom-approval-openapi
+    environment:
+      SWAGGER_JSON: /spec/openapi.yaml
+    volumes:
+      - ./services/approval/openapi.yaml:/spec/openapi.yaml:ro
+    ports:
+      - "9003:8080"
+    networks:
+      - cproom_net
+
+  notification-openapi:
+    image: swaggerapi/swagger-ui:latest
+    container_name: cproom-notification-openapi
+    environment:
+      SWAGGER_JSON: /spec/openapi.yaml
+    volumes:
+      - ./services/notification/openapi.yaml:/spec/openapi.yaml:ro
+    ports:
+      - "9004:8080"
+    networks:
+      - cproom_net
+
 volumes:
   postgres_data:
   mongo_data:

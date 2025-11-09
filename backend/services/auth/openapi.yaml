@@ -1,0 +1,238 @@
+openapi: 3.0.3
+info:
+  title: Auth Service API
+  version: 1.0.0
+  description: >
+    REST interface exposed by the auth service (Fiber) for credential login,
+    GitHub OAuth hand-off, profile lookup, and administrative utilities.
+servers:
+  - url: https://localhost:8443
+    description: Kong gateway (default dev setup)
+paths:
+  /auth/register:
+    post:
+      summary: Register a new end-user
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid payload
+        '500':
+          description: Server error
+  /auth/login:
+    post:
+      summary: Authenticate with email + password
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid payload
+        '401':
+          description: Invalid credentials
+  /auth/github/login:
+    get:
+      summary: Redirect user to GitHub OAuth
+      tags: [OAuth]
+      responses:
+        '302':
+          description: Redirect to GitHub authorization URL
+          headers:
+            Location:
+              schema:
+                type: string
+  /auth/github/callback:
+    get:
+      summary: Handle GitHub OAuth callback
+      tags: [OAuth]
+      parameters:
+        - in: query
+          name: code
+          schema:
+            type: string
+          required: true
+          description: Authorization code returned by GitHub
+        - in: query
+          name: state
+          schema:
+            type: string
+          description: CSRF token issued during /auth/github/login
+      responses:
+        '200':
+          description: GitHub login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid callback parameters
+        '500':
+          description: Upstream/GitHub failure
+  /auth/my-profile:
+    get:
+      summary: Fetch the profile for the authenticated user
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Missing or invalid token
+  /auth/logout:
+    get:
+      summary: Clear the auth cookie
+      tags: [Authentication]
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+  /auth/users/{id}:
+    get:
+      summary: Lookup a user by ID (service-to-service)
+      tags: [Administration]
+      security:
+        - ServiceToken: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: UUID of the user
+      responses:
+        '200':
+          description: User record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Missing/invalid service token
+        '404':
+          description: User not found
+  /auth/admin/register:
+    post:
+      summary: Create an administrator account
+      tags: [Administration]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminRegisterRequest'
+      responses:
+        '201':
+          description: Admin created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          description: Missing/invalid admin token
+        '403':
+          description: Caller is not an admin
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ServiceToken:
+      type: apiKey
+      in: header
+      name: X-Service-Token
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    AdminRegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    LoginResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: login successful
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [USER, ADMIN]
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string

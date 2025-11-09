@@ -1,0 +1,229 @@
+openapi: 3.0.3
+info:
+  title: Notification Service API
+  version: 1.0.0
+  description: Manage notification preferences, send immediate notifications, and inspect delivery history.
+servers:
+  - url: https://localhost:8443
+    description: Kong gateway (default dev)
+paths:
+  /preferences/{userId}:
+    parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: string
+        description: ID of the user
+    put:
+      summary: Upsert a user's notification preferences
+      tags: [Preferences]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePreferencesRequest'
+      responses:
+        '204':
+          description: Preferences saved
+        '400':
+          description: Invalid payload or channel
+        '500':
+          description: Server error
+    get:
+      summary: Retrieve a user's preferences
+      tags: [Preferences]
+      responses:
+        '200':
+          description: Current preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreference'
+        '404':
+          description: Preferences not found
+        '500':
+          description: Server error
+  /notifications/send:
+    post:
+      summary: Queue an immediate notification
+      tags: [Notifications]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendNotificationRequest'
+      responses:
+        '202':
+          description: Notification accepted for delivery
+        '400':
+          description: Validation error
+        '409':
+          description: Channel disabled for user
+        '500':
+          description: Server error
+  /notifications/schedule:
+    post:
+      summary: Schedule a notification for future delivery
+      tags: [Notifications]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleNotificationRequest'
+      responses:
+        '202':
+          description: Notification scheduled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notification_id:
+                    type: string
+                    description: MongoDB ObjectID of the scheduled notification
+        '400':
+          description: Validation error
+        '409':
+          description: Channel disabled for user
+        '500':
+          description: Server error
+  /notifications/history/{userId}:
+    get:
+      summary: Retrieve notification history for a user
+      tags: [Notifications]
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+          description: Page number (default 1)
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+            minimum: 1
+          description: Page size (default 20)
+      responses:
+        '200':
+          description: Paginated history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoryResponse'
+        '400':
+          description: Invalid parameters
+        '500':
+          description: Server error
+components:
+  schemas:
+    UpdatePreferencesRequest:
+      type: object
+      required: [enabled_channels]
+      properties:
+        enabled_channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/Channel'
+        preferences:
+          type: object
+          additionalProperties: true
+    NotificationPreference:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        enabled_channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/Channel'
+        preferences:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    SendNotificationRequest:
+      type: object
+      required: [user_id, type, channel, message]
+      properties:
+        user_id:
+          type: string
+        type:
+          type: string
+        channel:
+          $ref: '#/components/schemas/Channel'
+        message:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+    ScheduleNotificationRequest:
+      type: object
+      required: [user_id, type, channel, message, send_at]
+      properties:
+        user_id:
+          type: string
+        type:
+          type: string
+        channel:
+          $ref: '#/components/schemas/Channel'
+        message:
+          type: string
+        send_at:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          additionalProperties: true
+    HistoryResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+        page:
+          type: integer
+        page_size:
+          type: integer
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationHistory'
+    NotificationHistory:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        type:
+          type: string
+        message:
+          type: string
+        channel:
+          $ref: '#/components/schemas/Channel'
+        sent_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+    Channel:
+      type: string
+      enum: [email, push]
