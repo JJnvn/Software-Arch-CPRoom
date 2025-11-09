@@ -1,0 +1,215 @@
+openapi: 3.0.3
+info:
+  title: Approval Service API
+  version: 1.0.0
+  description: Admin-facing HTTP façade for reviewing and acting on room booking approvals.
+servers:
+  - url: https://localhost:8443
+    description: Kong gateway (default dev)
+paths:
+  /approvals/pending:
+    get:
+      summary: List bookings waiting for approval
+      tags: [Approvals]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: staff_id
+          schema:
+            type: string
+            format: uuid
+          description: Optional staff identifier used for auditing
+      responses:
+        '200':
+          description: Pending bookings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListPendingResponse'
+        '401':
+          description: Missing/invalid token
+        '403':
+          description: Caller is not an admin
+  /approvals/{booking_id}/approve:
+    post:
+      summary: Approve a pending booking
+      tags: [Approvals]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: booking_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveRequest'
+      responses:
+        '200':
+          description: Approval outcome
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApproveResponse'
+        '400':
+          description: Invalid payload
+        '401':
+          description: Missing/invalid token
+        '403':
+          description: Caller mismatch
+        '404':
+          description: Booking not found
+        '409':
+          description: Booking already processed
+  /approvals/{booking_id}/deny:
+    post:
+      summary: Deny a pending booking
+      tags: [Approvals]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: booking_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DenyRequest'
+      responses:
+        '200':
+          description: Denial outcome
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DenyResponse'
+        '400':
+          description: Invalid payload
+        '401':
+          description: Missing/invalid token
+        '403':
+          description: Caller mismatch
+        '404':
+          description: Booking not found
+        '409':
+          description: Booking already processed
+  /approvals/{booking_id}/audit:
+    get:
+      summary: Fetch the audit trail for a booking
+      tags: [Approvals]
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: booking_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Audit events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditTrailResponse'
+        '401':
+          description: Missing/invalid token
+        '403':
+          description: Caller is not an admin
+        '404':
+          description: Booking not found
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ListPendingResponse:
+      type: object
+      properties:
+        pending:
+          type: array
+          items:
+            $ref: '#/components/schemas/PendingBooking'
+    PendingBooking:
+      type: object
+      properties:
+        booking_id:
+          type: string
+          format: uuid
+        room_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+    ApproveRequest:
+      type: object
+      properties:
+        staff_id:
+          type: string
+          format: uuid
+          description: Optional staff ID override (must match token subject)
+    ApproveResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+    DenyRequest:
+      type: object
+      required: [reason]
+      properties:
+        staff_id:
+          type: string
+          format: uuid
+          description: Optional staff ID override (must match token subject)
+        reason:
+          type: string
+    DenyResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+    AuditTrailResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+    AuditEvent:
+      type: object
+      properties:
+        event_id:
+          type: string
+        booking_id:
+          type: string
+          format: uuid
+        staff_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+        reason:
+          type: string
+        created_at:
+          type: string
+          format: date-time

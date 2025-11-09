@@ -1,0 +1,187 @@
+openapi: 3.0.3
+info:
+  title: Booking Service API
+  version: 1.0.0
+  description: REST surface for searching rooms, creating bookings, and listing a user's bookings.
+servers:
+  - url: https://localhost:8443
+    description: Kong gateway (default dev)
+paths:
+  /rooms/search:
+    get:
+      summary: Search for available rooms
+      tags: [Rooms]
+      parameters:
+        - in: query
+          name: start
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: Start of the desired window (RFC3339)
+        - in: query
+          name: end
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: End of the desired window (RFC3339)
+        - in: query
+          name: capacity
+          schema:
+            type: integer
+            minimum: 0
+          description: Minimum room capacity
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+          description: Page number (default 1)
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+            minimum: 1
+          description: Page size (default 10)
+      responses:
+        '200':
+          description: List of matching rooms
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchRoomsResponse'
+        '400':
+          description: Validation error
+        '500':
+          description: Server error
+  /bookings:
+    post:
+      summary: Create a booking
+      tags: [Bookings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '200':
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateBookingResponse'
+        '400':
+          description: Invalid payload
+        '404':
+          description: Room or user not found
+        '409':
+          description: Room is not available
+  /bookings/mine:
+    get:
+      summary: List bookings for the authenticated user
+      tags: [Bookings]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Bookings owned by the caller
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserBooking'
+        '401':
+          description: Missing/invalid token
+        '500':
+          description: Server error
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SearchRoomsResponse:
+      type: object
+      properties:
+        rooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoomInfo'
+    RoomInfo:
+      type: object
+      properties:
+        room_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        capacity:
+          type: integer
+        features:
+          type: array
+          items:
+            type: string
+    CreateBookingRequest:
+      type: object
+      required: [user_id, room_id, start_time, end_time]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        room_id:
+          type: string
+          format: uuid
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+    CreateBookingResponse:
+      type: object
+      properties:
+        booking_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        room_id:
+          type: string
+          format: uuid
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+    UserBooking:
+      type: object
+      properties:
+        booking_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        room_id:
+          type: string
+          format: uuid
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time

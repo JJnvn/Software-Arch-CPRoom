@@ -146,11 +146,14 @@ services:
                 - exp
 
   - name: approval-service
-    url: http://approval-service:8085
+    url: grpc://approval-service:50052
     routes:
-      - name: approval-routes
+      - name: approval-grpc-routes
+        protocols:
+          - grpc
+          - grpcs
         paths:
-          - /approvals
+          - /approval.ApprovalService
         strip_path: false
         plugins:
           - name: jwt
