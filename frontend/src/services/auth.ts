@@ -23,10 +23,14 @@ export async function getProfile() {
   return data;
 }
 
-export async function updateProfile(payload: Partial<{ name: string; email: string; password: string }>) {
-  // Not implemented on backend; placeholder for future
-  return { success: false } as any;
+export async function updateProfile(
+  id: string,
+  payload: Partial<{ name: string; email: string }>
+) {
+  const { data } = await api.put(`/auth/users/${id}`, payload);
+  return data;
 }
+
 
 export async function getBookingHistory() {
   const { data } = await api.get('/bookings/mine');

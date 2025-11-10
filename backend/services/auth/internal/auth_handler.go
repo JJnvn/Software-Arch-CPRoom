@@ -140,6 +140,41 @@ func (h *AuthHandler) GetUserByID(c *fiber.Ctx) error {
 	})
 }
 
+func (h *AuthHandler) UpdateUserByID(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "id is required"})
+	}
+
+	type updateUserInput struct {
+		Name  string `json:"name"`
+		Email string `json:"email"`
+	}
+
+	var body updateUserInput
+
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid json body"})
+	}
+
+	// call service to update user fields
+	updatedUser, err := h.service.UpdateByID(id, body.Name, body.Email)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "user not found"})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	// return new user state
+	return c.JSON(fiber.Map{
+		"id":    updatedUser.ID,
+		"name":  updatedUser.Name,
+		"email": updatedUser.Email,
+		"role":  updatedUser.Role,
+	})
+}
+
 func (h *AuthHandler) enforceServiceToken(c *fiber.Ctx) error {
 	expected := strings.TrimSpace(os.Getenv("SERVICE_API_TOKEN"))
 	if expected == "" {

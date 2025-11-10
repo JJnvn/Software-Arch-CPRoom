@@ -128,6 +128,20 @@ func (s *AuthService) GetByID(id string) (*models.User, error) {
 	return s.repo.FindByID(id)
 }
 
+func (s *AuthService) UpdateByID(id string, name string, email string) (*models.User, error) {
+	if id == "" {
+		return nil, errors.New("id is required")
+	}
+	if name == "" {
+		return nil, errors.New("name is required")
+	}
+	if email == "" {
+		return nil, errors.New("email is required")
+	}
+
+	return s.repo.UpdateByID(id, name, email)
+}
+
 func (s *AuthService) GenerateJWT(user *models.User) (string, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
