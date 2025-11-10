@@ -24,6 +24,7 @@ func main() {
 	// DB
 	db := config.ConnectDB()
 	db.AutoMigrate(&models.Booking{})
+	config.SeedDefaultBookings(db)
 
 	// Layers
 	repo := internal.NewBookingRepository(db)
