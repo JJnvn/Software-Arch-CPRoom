@@ -162,3 +162,20 @@ services:
               secret_is_base64: false
               claims_to_verify:
                 - exp
+              run_on_preflight: false
+
+  # Expose HTTP endpoints of approval-service (pending/approve/deny/audit)
+  - name: approval-http-service
+    url: http://approval-service:8085
+    routes:
+      - name: approval-http-routes
+        paths:
+          - /approvals
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: iss
+              secret_is_base64: false
+              claims_to_verify:
+                - exp

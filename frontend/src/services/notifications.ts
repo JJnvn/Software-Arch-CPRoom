@@ -6,7 +6,7 @@ export async function getNotificationHistory() {
 }
 
 export async function updateNotificationPreferences(payload: { notificationType?: string; language?: string }) {
-  const { data } = await api.put('/users/me/notification-preferences', payload);
-  return data;
+  // See notification-service: should call /preferences/:userId
+  return { success: false } as any;
 }
 

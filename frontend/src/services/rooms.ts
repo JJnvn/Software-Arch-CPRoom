@@ -1,8 +1,16 @@
 import api from './api';
 
-export async function searchRooms(params: { date?: string; time?: string; capacity?: number; features?: string[] }) {
+export async function searchRooms(params: { start: string; end: string; capacity?: number; features?: string[] }) {
   const { data } = await api.get('/rooms/search', { params });
-  return data;
+  const rooms = Array.isArray(data?.rooms)
+    ? data.rooms.map((r: any) => ({
+        id: r.room_id ?? r.id,
+        name: r.name,
+        capacity: r.capacity,
+        features: r.features,
+      }))
+    : [];
+  return { rooms };
 }
 
 export async function getRoomSchedule(roomId: string, params: { date?: string }) {
@@ -33,5 +41,15 @@ export async function transferBookingOwnership(bookingId: string, payload: { new
 export async function getAdminRoomBookings(roomId: string) {
   const { data } = await api.get(`/admin/rooms/${roomId}/bookings`);
   return data;
+}
+
+export async function createRoom(payload: { name: string; capacity?: number; features?: string[] }) {
+  const { data } = await api.post('/rooms', payload);
+  return data;
+}
+
+export async function listRooms() {
+  const { data } = await api.get('/rooms');
+  return data as Array<{ id: string; name: string; capacity?: number; features?: string[] }>;
 }
 

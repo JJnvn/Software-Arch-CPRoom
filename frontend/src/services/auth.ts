@@ -19,13 +19,13 @@ export async function logout() {
 }
 
 export async function getProfile() {
-  const { data } = await api.get('/users/me'); 
+  const { data } = await api.get('/auth/my-profile'); 
   return data;
 }
 
 export async function updateProfile(payload: Partial<{ name: string; email: string; password: string }>) {
-  const { data } = await api.put('/users/me', payload); // backend not implemented
-  return data;
+  // Not implemented on backend; placeholder for future
+  return { success: false } as any;
 }
 
 export async function getBookingHistory() {
@@ -34,7 +34,7 @@ export async function getBookingHistory() {
 }
 
 export async function updatePreferences(payload: { notificationType?: string; language?: string }) {
-  const { data } = await api.put('/users/me/preferences', payload);
-  return data;
+  // See notification-service: use /preferences/:userId instead
+  return { success: false } as any;
 }
 
