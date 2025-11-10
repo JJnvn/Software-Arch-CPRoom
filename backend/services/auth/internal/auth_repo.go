@@ -49,3 +49,7 @@ func (r *AuthRepository) UpdateByID(id string, name string, email string) (*mode
 
 	return &user, nil
 }
+
+func (r *AuthRepository) UpdatePassword(id string, hashedPassword string) error {
+	return r.db.Model(&models.User{}).Where("id = ?", id).Update("password", hashedPassword).Error
+}

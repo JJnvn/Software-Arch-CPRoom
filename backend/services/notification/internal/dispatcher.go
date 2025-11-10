@@ -197,7 +197,7 @@ func titleCase(value string) string {
 
 func buildEmailBody(payload notificationMessage) string {
 	lines := []string{payload.Message}
-	if room := extractString(payload.Metadata, "room_id"); room != "" {
+	if room := extractString(payload.Metadata, "room"); room != "" {
 		lines = append(lines, fmt.Sprintf("Room: %s", room))
 	}
 	if start := extractString(payload.Metadata, "start_time"); start != "" {

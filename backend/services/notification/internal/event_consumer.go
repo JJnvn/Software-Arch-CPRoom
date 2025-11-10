@@ -81,9 +81,17 @@ func buildBookingNotification(evt events.BookingEvent) (string, map[string]any) 
 	startFormatted := formatEventTime(evt.StartTime)
 	endFormatted := formatEventTime(evt.EndTime)
 
+	// Use room name if available, fallback to room ID
+	roomDisplay := evt.RoomName
+	if roomDisplay == "" {
+		roomDisplay = evt.RoomID
+	}
+
 	metadata := map[string]any{
 		"booking_id": evt.BookingID,
-		"room_id":    evt.RoomID,
+		"room":       roomDisplay, // Use room name for display
+		"room_id":    evt.RoomID,  // Keep original ID for reference
+		"room_name":  evt.RoomName,
 		"status":     evt.Status,
 	}
 	if startFormatted != "" {
@@ -99,21 +107,23 @@ func buildBookingNotification(evt events.BookingEvent) (string, map[string]any) 
 
 	switch evt.Event {
 	case events.BookingCreatedEvent:
-		return fmt.Sprintf("Booking requested for room %s (%s - %s).", evt.RoomID, startFormatted, endFormatted), metadata
+		return fmt.Sprintf("Booking requested for room %s (%s - %s).", roomDisplay, startFormatted, endFormatted), metadata
 	case events.BookingUpdatedEvent:
-		return fmt.Sprintf("Booking %s updated. New time: %s - %s.", evt.BookingID, startFormatted, endFormatted), metadata
+		return fmt.Sprintf("Booking for room %s updated. New time: %s - %s.", roomDisplay, startFormatted, endFormatted), metadata
 	case events.BookingCancelledEvent:
-		return fmt.Sprintf("Booking %s has been cancelled.", evt.BookingID), metadata
+		return fmt.Sprintf("Booking for room %s has been cancelled.", roomDisplay), metadata
 	case events.BookingApprovedEvent:
-		return fmt.Sprintf("Booking %s has been approved.", evt.BookingID), metadata
+		return fmt.Sprintf("Booking for room %s has been approved.", roomDisplay), metadata
 	case events.BookingDeniedEvent:
 		if reason, ok := evt.Metadata["reason"].(string); ok && reason != "" {
 			metadata["reason"] = reason
-			return fmt.Sprintf("Booking %s was denied: %s", evt.BookingID, reason), metadata
+			return fmt.Sprintf("Booking for room %s was denied: %s", roomDisplay, reason), metadata
 		}
-		return fmt.Sprintf("Booking %s was denied.", evt.BookingID), metadata
+		return fmt.Sprintf("Booking for room %s was denied.", roomDisplay), metadata
+	case events.BookingTransferredEvent:
+		return fmt.Sprintf("A booking for room %s has been transferred to you (%s - %s).", roomDisplay, startFormatted, endFormatted), metadata
 	default:
-		return fmt.Sprintf("Booking %s update: %s", evt.BookingID, evt.Status), metadata
+		return fmt.Sprintf("Booking for room %s update: %s", roomDisplay, evt.Status), metadata
 	}
 }
 

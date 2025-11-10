@@ -76,6 +76,10 @@ func main() {
 	go scheduler.Start(ctx)
 
 	app := fiber.New()
+
+	// Add middleware to extract JWT claims from Kong headers
+	app.Use(internal.ExtractJWTClaims())
+
 	handler.RegisterRoutes(app)
 
 	port := os.Getenv("NOTIFICATION_SERVICE_PORT")

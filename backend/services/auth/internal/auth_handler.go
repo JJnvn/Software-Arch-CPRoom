@@ -7,6 +7,7 @@ import (
 
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/models"
 	"github.com/gofiber/fiber/v2"
+	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
 )
@@ -74,28 +75,48 @@ func (h *AuthHandler) GitHubLogin(c *fiber.Ctx) error {
 
 func (h *AuthHandler) GitHubCallback(c *fiber.Ctx) error {
 	code := c.Query("code")
+	errorParam := c.Query("error")
+
+	// Handle OAuth error
+	if errorParam != "" {
+		frontendURL := os.Getenv("FRONTEND_URL")
+		if frontendURL == "" {
+			frontendURL = "http://localhost:5173"
+		}
+		return c.Redirect(frontendURL + "/login?error=" + errorParam)
+	}
+
+	if code == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "authorization code is required"})
+	}
+
 	user, err := h.service.HandleGitHubCallback(code)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		frontendURL := os.Getenv("FRONTEND_URL")
+		if frontendURL == "" {
+			frontendURL = "http://localhost:5173"
+		}
+		return c.Redirect(frontendURL + "/login?error=oauth_failed")
 	}
 
 	token, err := h.service.GenerateJWT(user)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to generate token"})
+		frontendURL := os.Getenv("FRONTEND_URL")
+		if frontendURL == "" {
+			frontendURL = "http://localhost:5173"
+		}
+		return c.Redirect(frontendURL + "/login?error=token_generation_failed")
 	}
 
 	h.setAuthCookie(c, token)
 
-	return c.JSON(fiber.Map{
-		"message": "GitHub login successful",
-		"token":   token,
-		"user": fiber.Map{
-			"id":    user.ID,
-			"name":  user.Name,
-			"email": user.Email,
-			"role":  user.Role,
-		},
-	})
+	// Redirect to frontend with token
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:5173"
+	}
+
+	return c.Redirect(frontendURL + "/auth/callback?token=" + token)
 }
 
 func (h *AuthHandler) MyProfile(c *fiber.Ctx) error {
@@ -172,6 +193,69 @@ func (h *AuthHandler) UpdateUserByID(c *fiber.Ctx) error {
 		"name":  updatedUser.Name,
 		"email": updatedUser.Email,
 		"role":  updatedUser.Role,
+	})
+}
+
+// UpdateProfile updates the authenticated user's profile
+func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
+	// Extract user email from JWT (set by middleware)
+	email := c.Locals("email").(string)
+
+	// Get current user
+	user, err := h.service.GetByEmail(email)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "user not found"})
+	}
+
+	type updateProfileInput struct {
+		Name     string `json:"name"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	var body updateProfileInput
+
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid json body"})
+	}
+
+	// Determine what to update
+	newName := user.Name
+	newEmail := user.Email
+
+	if body.Name != "" {
+		newName = body.Name
+	}
+	if body.Email != "" {
+		newEmail = body.Email
+	}
+
+	// Update name and email
+	updatedUser, err := h.service.UpdateByID(user.ID, newName, newEmail)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	// Update password if provided
+	if body.Password != "" {
+		// Hash the password before saving
+		hashed, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to hash password"})
+		}
+		if err := h.service.repo.UpdatePassword(user.ID, string(hashed)); err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to update password"})
+		}
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "profile updated successfully",
+		"user": fiber.Map{
+			"id":    updatedUser.ID,
+			"name":  updatedUser.Name,
+			"email": updatedUser.Email,
+			"role":  updatedUser.Role,
+		},
 	})
 }
 

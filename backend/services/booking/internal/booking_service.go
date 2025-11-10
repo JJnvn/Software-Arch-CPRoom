@@ -30,11 +30,20 @@ func (s *BookingService) publishBookingEvent(ctx context.Context, booking *model
 	if s.publisher == nil || booking == nil {
 		return
 	}
+
+	// Fetch room name
+	roomName, err := s.repo.GetRoomName(booking.RoomID)
+	if err != nil {
+		log.Printf("failed to fetch room name for room %s: %v", booking.RoomID, err)
+		roomName = booking.RoomID.String() // Fallback to room ID
+	}
+
 	payload := events.BookingEvent{
 		Event:     event,
 		BookingID: booking.ID.String(),
 		UserID:    booking.UserID.String(),
 		RoomID:    booking.RoomID.String(),
+		RoomName:  roomName,
 		Status:    booking.Status,
 		StartTime: booking.StartTime,
 		EndTime:   booking.EndTime,

@@ -131,11 +131,11 @@ func (r *BookingRepository) TransferBooking(id, newOwner uuid.UUID) error {
 
 func (r *BookingRepository) GetRoomSchedule(roomID uuid.UUID, date time.Time) ([]models.Booking, error) {
 	var bookings []models.Booking
-	
+
 	// Set the start and end of the day for the given date
 	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 	endOfDay := startOfDay.Add(24 * time.Hour)
-	
+
 	err := r.db.Where("room_id = ?", roomID).
 		Where("status IN ?", []string{
 			models.StatusPending,
