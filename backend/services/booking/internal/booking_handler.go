@@ -141,10 +141,17 @@ func (h *BookingHandler) ListUserBookings(c *fiber.Ctx) error {
 
 	response := make([]fiber.Map, len(bookings))
 	for i, booking := range bookings {
+		// Fetch room name from repository
+		roomName, err := h.service.repo.GetRoomName(booking.RoomID)
+		if err != nil {
+			roomName = "" // fallback to empty string if room not found
+		}
+
 		response[i] = fiber.Map{
 			"booking_id": booking.ID.String(),
 			"user_id":    booking.UserID.String(),
 			"room_id":    booking.RoomID.String(),
+			"room_name":  roomName,
 			"start_time": booking.StartTime,
 			"end_time":   booking.EndTime,
 			"status":     booking.Status,

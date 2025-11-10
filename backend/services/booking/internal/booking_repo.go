@@ -158,6 +158,18 @@ func (r *BookingRepository) AdminListBookings(roomID uuid.UUID) ([]models.Bookin
 	return bookings, err
 }
 
+func (r *BookingRepository) GetRoomName(roomID uuid.UUID) (string, error) {
+	var roomName string
+	err := r.db.Table("rooms").
+		Select("name").
+		Where("id = ?", roomID).
+		Scan(&roomName).Error
+	if err != nil {
+		return "", err
+	}
+	return roomName, nil
+}
+
 func (r *BookingRepository) SearchAvailableRooms(start, end time.Time, capacity, page, pageSize int) ([]RoomSearchResult, error) {
 	if page <= 0 {
 		page = 1

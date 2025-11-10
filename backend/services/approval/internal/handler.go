@@ -55,37 +55,37 @@ func (h *ApprovalHandler) ListPending(c *fiber.Ctx) error {
 
 // ListApproved returns approved bookings enriched with room_name and user_name.
 func (h *ApprovalHandler) ListApproved(c *fiber.Ctx) error {
-    if _, err := requireAdminClaims(c); err != nil {
-        return respondError(c, err)
-    }
+	if _, err := requireAdminClaims(c); err != nil {
+		return respondError(c, err)
+	}
 
-    rows, err := h.service.ListApproved()
-    if err != nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-    }
+	rows, err := h.service.ListApproved()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
 
-    roomIDs := make([]string, 0, len(rows))
-    userIDs := make([]string, 0, len(rows))
-    for _, r := range rows {
-        roomIDs = append(roomIDs, r.RoomID.String())
-        userIDs = append(userIDs, r.UserID.String())
-    }
-    roomNames, _ := h.service.GetRoomNames(roomIDs)
-    userNames, _ := h.service.GetUserNames(userIDs)
+	roomIDs := make([]string, 0, len(rows))
+	userIDs := make([]string, 0, len(rows))
+	for _, r := range rows {
+		roomIDs = append(roomIDs, r.RoomID.String())
+		userIDs = append(userIDs, r.UserID.String())
+	}
+	roomNames, _ := h.service.GetRoomNames(roomIDs)
+	userNames, _ := h.service.GetUserNames(userIDs)
 
-    items := make([]fiber.Map, 0, len(rows))
-    for _, r := range rows {
-        items = append(items, fiber.Map{
-            "booking_id": r.ID.String(),
-            "room_id":    r.RoomID.String(),
-            "user_id":    r.UserID.String(),
-            "start":      fiber.Map{"seconds": r.StartTime.Unix()},
-            "end":        fiber.Map{"seconds": r.EndTime.Unix()},
-            "room_name":  strings.TrimSpace(roomNames[r.RoomID.String()]),
-            "user_name":  strings.TrimSpace(userNames[r.UserID.String()]),
-        })
-    }
-    return c.JSON(fiber.Map{"approved": items})
+	items := make([]fiber.Map, 0, len(rows))
+	for _, r := range rows {
+		items = append(items, fiber.Map{
+			"booking_id": r.ID.String(),
+			"room_id":    r.RoomID.String(),
+			"user_id":    r.UserID.String(),
+			"start":      fiber.Map{"seconds": r.StartTime.Unix()},
+			"end":        fiber.Map{"seconds": r.EndTime.Unix()},
+			"room_name":  strings.TrimSpace(roomNames[r.RoomID.String()]),
+			"user_name":  strings.TrimSpace(userNames[r.UserID.String()]),
+		})
+	}
+	return c.JSON(fiber.Map{"approved": items})
 }
 
 func fetchRoomName(roomID string) string {
@@ -142,20 +142,9 @@ func (h *ApprovalHandler) Approve(c *fiber.Ctx) error {
 		return respondError(c, err)
 	}
 
-	type request struct {
-		StaffID string `json:"staff_id"`
-	}
-	var req request
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-	}
-
 	staffID := strings.TrimSpace(claims.Subject)
 	if staffID == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "token subject missing"})
-	}
-	if req.StaffID != "" && !strings.EqualFold(req.StaffID, staffID) {
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "staff_id does not match authenticated admin"})
 	}
 
 	resp, err := h.service.ApproveBooking(c.Context(), &pb.ApproveRequest{
@@ -175,8 +164,7 @@ func (h *ApprovalHandler) Deny(c *fiber.Ctx) error {
 	}
 
 	type request struct {
-		StaffID string `json:"staff_id"`
-		Reason  string `json:"reason"`
+		Reason string `json:"reason"`
 	}
 	var req request
 	if err := c.BodyParser(&req); err != nil {
@@ -186,9 +174,6 @@ func (h *ApprovalHandler) Deny(c *fiber.Ctx) error {
 	staffID := strings.TrimSpace(claims.Subject)
 	if staffID == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "token subject missing"})
-	}
-	if req.StaffID != "" && !strings.EqualFold(req.StaffID, staffID) {
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "staff_id does not match authenticated admin"})
 	}
 
 	resp, err := h.service.DenyBooking(c.Context(), &pb.DenyRequest{
