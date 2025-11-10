@@ -25,7 +25,7 @@ type PendingBooking struct {
 }
 
 type ApprovalRepository struct {
-	db *gorm.DB
+    db *gorm.DB
 }
 
 func NewApprovalRepository(db *gorm.DB) *ApprovalRepository {
@@ -40,6 +40,50 @@ func (r *ApprovalRepository) ListPendingBookings() ([]PendingBooking, error) {
 		Order("start_time ASC").
 		Scan(&rows).Error
 	return rows, err
+}
+
+func (r *ApprovalRepository) ListApprovedBookings() ([]PendingBooking, error) {
+    var rows []PendingBooking
+    err := r.db.Model(&models.Booking{}).
+        Select("id, room_id, user_id, start_time, end_time").
+        Where("status = ?", models.StatusConfirmed).
+        Order("start_time DESC").
+        Scan(&rows).Error
+    return rows, err
+}
+
+// GetRoomNames returns a map of roomID -> name for the provided IDs.
+func (r *ApprovalRepository) GetRoomNames(ids []string) (map[string]string, error) {
+    if len(ids) == 0 {
+        return map[string]string{}, nil
+    }
+    type row struct{ ID, Name string }
+    var rows []row
+    if err := r.db.Table("rooms").Select("id, name").Where("id IN ?", ids).Scan(&rows).Error; err != nil {
+        return nil, err
+    }
+    out := make(map[string]string, len(rows))
+    for _, r := range rows {
+        out[r.ID] = r.Name
+    }
+    return out, nil
+}
+
+// GetUserNames returns a map of userID -> name for the provided IDs.
+func (r *ApprovalRepository) GetUserNames(ids []string) (map[string]string, error) {
+    if len(ids) == 0 {
+        return map[string]string{}, nil
+    }
+    type row struct{ ID, Name string }
+    var rows []row
+    if err := r.db.Table("users").Select("id, name").Where("id IN ?", ids).Scan(&rows).Error; err != nil {
+        return nil, err
+    }
+    out := make(map[string]string, len(rows))
+    for _, r := range rows {
+        out[r.ID] = r.Name
+    }
+    return out, nil
 }
 
 func (r *ApprovalRepository) setBookingStatus(bookingID uuid.UUID, status string, staffID uuid.UUID, reason string, action string) (*models.Booking, error) {

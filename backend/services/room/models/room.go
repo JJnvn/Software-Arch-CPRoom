@@ -45,8 +45,8 @@ func (s *StringList) Scan(value any) error {
 }
 
 type Room struct {
-	ID       uuid.UUID  `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
-	Name     string     `json:"name"`
-	Capacity int        `json:"capacity"`
-	Features StringList `gorm:"type:jsonb" json:"features"`
+    ID       uuid.UUID  `gorm:"type:uuid;default:uuid_generate_v4();primaryKey" json:"id"`
+    Name     string     `gorm:"uniqueIndex;not null" json:"name"`
+    Capacity int        `json:"capacity"`
+    Features StringList `gorm:"type:jsonb" json:"features"`
 }

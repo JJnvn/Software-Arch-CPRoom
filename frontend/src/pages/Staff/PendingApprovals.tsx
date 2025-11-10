@@ -12,12 +12,22 @@ export default function PendingApprovals() {
   }, []);
 
   async function approve(id: string) {
-    await staff.approveBookingRequest(id);
-    setRequests((r) => r.filter((x) => x.id !== id));
+    try {
+      await staff.approveBookingRequest(id);
+      setRequests((r) => r.filter((x) => x.id !== id));
+    } catch (e) {
+      // noop; could show a toast
+    }
   }
   async function deny(id: string) {
-    await staff.denyBookingRequest(id);
-    setRequests((r) => r.filter((x) => x.id !== id));
+    const reason = window.prompt('Reason for denial?');
+    if (!reason) return;
+    try {
+      await staff.denyBookingRequest(id, reason);
+      setRequests((r) => r.filter((x) => x.id !== id));
+    } catch (e) {
+      // noop; could show a toast
+    }
   }
 
   return (

@@ -11,8 +11,10 @@ import RoomSchedule from "./pages/Rooms/RoomSchedule";
 import CreateBooking from "./pages/Rooms/CreateBooking";
 import EditBooking from "./pages/Rooms/EditBooking";
 import TransferBooking from "./pages/Rooms/TransferBooking";
-import AdminRoomBookings from "./pages/Rooms/AdminRoomBookings";
+import AdminCreateRoom from "./pages/Admin/CreateRoom";
+import EditRoom from "./pages/Admin/EditRoom";
 import PendingApprovals from "./pages/Staff/PendingApprovals";
+import ApprovedBookings from "./pages/Staff/ApprovedBookings";
 import NotificationHistory from "./pages/Notifications/NotificationHistory";
 import { useAuth } from "./hooks/useAuth";
 
@@ -31,8 +33,11 @@ function AppLayout() {
 }
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
-    const { user } = useAuth();
+    const { user, loading } = useAuth();
     const location = useLocation();
+    if (loading) {
+        return null;
+    }
     if (!user) {
         return <Navigate to="/login" replace state={{ from: location }} />;
     }
@@ -71,14 +76,22 @@ export default function App() {
                     element={<TransferBooking />}
                 />
                 <Route
-                    path="/admin/rooms/:id/bookings"
-                    element={<AdminRoomBookings />}
+                    path="/admin/rooms/create"
+                    element={<AdminCreateRoom />}
+                />
+                <Route
+                    path="/admin/rooms/:id/edit"
+                    element={<EditRoom />}
                 />
 
                 {/* Staff */}
                 <Route
                     path="/approvals/pending"
                     element={<PendingApprovals />}
+                />
+                <Route
+                    path="/approvals/approved"
+                    element={<ApprovedBookings />}
                 />
 
                 {/* Notifications */}

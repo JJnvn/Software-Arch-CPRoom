@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
 import * as notifications from '@/services/notifications';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function NotificationHistory() {
   const [items, setItems] = useState<any[]>([]);
+  const { user } = useAuth();
 
   useEffect(() => {
     (async () => {
-      const data = await notifications.getNotificationHistory();
+      if (!user?.id) return;
+      const data = await notifications.getNotificationHistory(user.id);
       setItems(data.notifications ?? []);
     })();
-  }, []);
+  }, [user?.id]);
 
   return (
     <div className="page">

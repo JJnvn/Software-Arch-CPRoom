@@ -15,13 +15,25 @@ import (
 )
 
 type ApprovalService struct {
-	repo      *ApprovalRepository
-	publisher events.Publisher
-	pb.UnimplementedApprovalServiceServer
+    repo      *ApprovalRepository
+    publisher events.Publisher
+    pb.UnimplementedApprovalServiceServer
 }
 
 func NewApprovalService(repo *ApprovalRepository, publisher events.Publisher) *ApprovalService {
-	return &ApprovalService{repo: repo, publisher: publisher}
+    return &ApprovalService{repo: repo, publisher: publisher}
+}
+
+func (s *ApprovalService) GetRoomNames(ids []string) (map[string]string, error) {
+    return s.repo.GetRoomNames(ids)
+}
+
+func (s *ApprovalService) GetUserNames(ids []string) (map[string]string, error) {
+    return s.repo.GetUserNames(ids)
+}
+
+func (s *ApprovalService) ListApproved() ([]PendingBooking, error) {
+    return s.repo.ListApprovedBookings()
 }
 
 func (s *ApprovalService) publishBookingEvent(ctx context.Context, booking *models.Booking, event string, metadata map[string]any) {
