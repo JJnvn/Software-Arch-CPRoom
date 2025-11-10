@@ -1,5 +1,31 @@
 import api from './api';
 
+// Booking-related functions
+export async function cancelBooking(bookingId: string) {
+  const { data } = await api.post(`/bookings/${bookingId}/cancel`);
+  return data;
+}
+
+export async function rescheduleBooking(bookingId: string, payload: { start_time: string; end_time: string }) {
+  const { data } = await api.put(`/bookings/${bookingId}`, payload);
+  return data;
+}
+
+export async function transferBooking(bookingId: string, payload: { new_user_email: string }) {
+  const { data } = await api.post(`/bookings/${bookingId}/transfer`, payload);
+  return data;
+}
+
+export async function getRoomSchedule(roomId: string, date: string) {
+  const { data } = await api.get(`/rooms/${roomId}/schedule`, { params: { date } });
+  return data;
+}
+
+export async function getAdminRoomBookings(roomId: string) {
+  const { data } = await api.get(`/admin/rooms/${roomId}/bookings`);
+  return data;
+}
+
 export async function login(payload: { email: string; password: string }) {
   const { data } = await api.post('/auth/login', payload);
   if (data.token) {
@@ -23,11 +49,8 @@ export async function getProfile() {
   return data;
 }
 
-export async function updateProfile(
-  id: string,
-  payload: Partial<{ name: string; email: string }>
-) {
-  const { data } = await api.put(`/auth/users/${id}`, payload);
+export async function updateProfile(payload: Partial<{ name: string; email: string; password: string }>) {
+  const { data } = await api.put('/auth/profile', payload);
   return data;
 }
 
@@ -37,8 +60,13 @@ export async function getBookingHistory() {
   return data;
 }
 
-export async function updatePreferences(payload: { notificationType?: string; language?: string }) {
-  // See notification-service: use /preferences/:userId instead
-  return { success: false } as any;
+export async function updatePreferences(payload: { notification_type?: string; language?: string; enabled_channels?: string[] }) {
+  const { data } = await api.put('/preferences', payload);
+  return data;
+}
+
+export async function getPreferences() {
+  const { data } = await api.get('/preferences');
+  return data;
 }
 

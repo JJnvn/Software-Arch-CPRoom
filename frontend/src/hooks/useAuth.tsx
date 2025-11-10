@@ -14,6 +14,7 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,6 +76,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try { await authApi.logout(); } catch {}
       localStorage.removeItem('AUTH_TOKEN');
       setUser(null);
+    },
+    refreshUser: async () => {
+      try {
+        const prof = await authApi.getProfile();
+        setUser({ id: prof.id, name: prof.name, email: prof.email, role: prof.role });
+      } catch (e) {
+        console.error('Failed to refresh user profile:', e);
+      }
     }
   }), [user, loading]);
 
