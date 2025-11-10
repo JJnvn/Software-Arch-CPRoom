@@ -32,3 +32,20 @@ func (r *AuthRepository) FindByID(id string) (*models.User, error) {
 	}
 	return &user, nil
 }
+
+func (r *AuthRepository) UpdateByID(id string, name string, email string) (*models.User, error) {
+	var user models.User
+
+	if err := r.db.First(&user, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+
+	user.Name = name
+	user.Email = email
+
+	if err := r.db.Save(&user).Error; err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
