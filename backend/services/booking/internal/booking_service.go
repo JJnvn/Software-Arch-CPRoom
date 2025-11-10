@@ -147,7 +147,17 @@ func (s *BookingService) GetRoomSchedule(ctx context.Context, req *pb.GetRoomSch
 		return nil, status.Error(codes.InvalidArgument, "invalid room_id")
 	}
 
-	bookings, err := s.repo.GetRoomSchedule(roomID)
+	// Parse the date string (format: YYYY-MM-DD)
+	date := time.Now() // Default to today if not provided
+	if req.GetDate() != "" {
+		parsedDate, err := time.Parse("2006-01-02", req.GetDate())
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid date format, expected YYYY-MM-DD")
+		}
+		date = parsedDate
+	}
+
+	bookings, err := s.repo.GetRoomSchedule(roomID, date)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to load room schedule: %v", err)
 	}

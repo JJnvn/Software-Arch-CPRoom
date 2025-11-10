@@ -163,6 +163,203 @@ func (h *BookingHandler) ListUserBookings(c *fiber.Ctx) error {
 	return c.JSON(response)
 }
 
+func (h *BookingHandler) CancelBooking(c *fiber.Ctx) error {
+	bookingID := c.Params("id")
+	if bookingID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "booking ID is required"})
+	}
+
+	_, err := uuid.Parse(bookingID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid booking ID"})
+	}
+
+	req := &pb.CancelBookingRequest{BookingId: bookingID}
+	resp, err := h.service.CancelBooking(c.Context(), req)
+	if err != nil {
+		return translateGRPCError(c, err)
+	}
+
+	return c.JSON(resp)
+}
+
+func (h *BookingHandler) UpdateBooking(c *fiber.Ctx) error {
+	bookingID := c.Params("id")
+	if bookingID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "booking ID is required"})
+	}
+
+	type request struct {
+		StartTime string `json:"start_time"`
+		EndTime   string `json:"end_time"`
+	}
+
+	var req request
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	start, err := time.Parse(time.RFC3339, req.StartTime)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid start_time format"})
+	}
+
+	end, err := time.Parse(time.RFC3339, req.EndTime)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid end_time format"})
+	}
+
+	// Update booking in database
+	id, err := uuid.Parse(bookingID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid booking ID"})
+	}
+
+	err = h.service.repo.UpdateBookingTimes(id, start, end)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"success": true, "message": "Booking updated successfully"})
+}
+
+func (h *BookingHandler) TransferBooking(c *fiber.Ctx) error {
+	bookingID := c.Params("id")
+	if bookingID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "booking ID is required"})
+	}
+
+	type request struct {
+		NewUserEmail string `json:"new_user_email"`
+	}
+
+	var req request
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	if req.NewUserEmail == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "new_user_email is required"})
+	}
+
+	// Look up user by email from auth service
+	newUserID, err := h.service.repo.GetUserIDByEmail(req.NewUserEmail)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "user not found with that email"})
+	}
+
+	id, err := uuid.Parse(bookingID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid booking ID"})
+	}
+
+	// Get the booking details before transfer
+	booking, err := h.service.repo.FindByID(id)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "booking not found"})
+	}
+
+	// Transfer the booking
+	err = h.service.repo.TransferBooking(id, newUserID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	// Update booking with new user ID for event publishing
+	booking.UserID = newUserID
+
+	// Publish booking transferred event to notify the new owner
+	go h.service.publishBookingEvent(c.Context(), booking, "booking.transferred", map[string]any{
+		"new_owner_email": req.NewUserEmail,
+		"transferred_at":  time.Now().UTC(),
+	})
+
+	return c.JSON(fiber.Map{"success": true, "message": "Booking transferred successfully"})
+}
+
+func (h *BookingHandler) GetRoomSchedule(c *fiber.Ctx) error {
+	roomID := c.Params("id")
+	date := c.Query("date")
+
+	if roomID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "room ID is required"})
+	}
+
+	id, err := uuid.Parse(roomID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid room ID"})
+	}
+
+	// Parse date or use today
+	var targetDate time.Time
+	if date != "" {
+		targetDate, err = time.Parse("2006-01-02", date)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid date format, use YYYY-MM-DD"})
+		}
+	} else {
+		targetDate = time.Now()
+	}
+
+	// Get bookings for the room on the specified date
+	startOfDay := time.Date(targetDate.Year(), targetDate.Month(), targetDate.Day(), 0, 0, 0, 0, targetDate.Location())
+	endOfDay := startOfDay.Add(24 * time.Hour)
+
+	bookings, err := h.service.repo.GetRoomBookingsByDate(id, startOfDay, endOfDay)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	response := make([]fiber.Map, len(bookings))
+	for i, booking := range bookings {
+		response[i] = fiber.Map{
+			"booking_id": booking.ID.String(),
+			"user_id":    booking.UserID.String(),
+			"start_time": booking.StartTime,
+			"end_time":   booking.EndTime,
+			"status":     booking.Status,
+		}
+	}
+
+	return c.JSON(fiber.Map{
+		"bookings": response,
+		"date":     targetDate.Format("2006-01-02"),
+	})
+}
+
+func (h *BookingHandler) GetAdminRoomBookings(c *fiber.Ctx) error {
+	roomID := c.Params("id")
+	if roomID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "room ID is required"})
+	}
+
+	id, err := uuid.Parse(roomID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid room ID"})
+	}
+
+	bookings, err := h.service.repo.GetBookingsByRoom(id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	response := make([]fiber.Map, len(bookings))
+	for i, booking := range bookings {
+		response[i] = fiber.Map{
+			"booking_id": booking.ID.String(),
+			"user_id":    booking.UserID.String(),
+			"room_id":    booking.RoomID.String(),
+			"start_time": booking.StartTime,
+			"end_time":   booking.EndTime,
+			"status":     booking.Status,
+			"created_at": booking.CreatedAt,
+			"updated_at": booking.UpdatedAt,
+		}
+	}
+
+	return c.JSON(response)
+}
+
 func translateGRPCError(c *fiber.Ctx, err error) error {
 	st, ok := status.FromError(err)
 	if !ok {

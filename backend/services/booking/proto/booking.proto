@@ -37,6 +37,7 @@ message SearchRoomsResponse {
 
 message GetRoomScheduleRequest {
   string room_id = 1;
+  string date = 2; // Format: YYYY-MM-DD
 }
 
 message RoomScheduleResponse {
