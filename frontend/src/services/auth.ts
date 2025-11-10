@@ -2,6 +2,9 @@ import api from './api';
 
 export async function login(payload: { email: string; password: string }) {
   const { data } = await api.post('/auth/login', payload);
+  if (data.token) {
+    localStorage.setItem('AUTH_TOKEN', data.token);
+  }
   return data;
 }
 
@@ -16,17 +19,17 @@ export async function logout() {
 }
 
 export async function getProfile() {
-  const { data } = await api.get('/users/me');
+  const { data } = await api.get('/users/me'); 
   return data;
 }
 
 export async function updateProfile(payload: Partial<{ name: string; email: string; password: string }>) {
-  const { data } = await api.put('/users/me', payload);
+  const { data } = await api.put('/users/me', payload); // backend not implemented
   return data;
 }
 
 export async function getBookingHistory() {
-  const { data } = await api.get('/users/me/bookings');
+  const { data } = await api.get('/bookings/mine');
   return data;
 }
 
