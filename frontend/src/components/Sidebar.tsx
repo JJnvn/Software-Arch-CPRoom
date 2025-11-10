@@ -37,8 +37,8 @@ export default function Sidebar() {
                         Staff
                     </div>
                     <Item to="/approvals/pending" label="Pending Approvals" />
+                    <Item to="/approvals/approved" label="Approved Bookings" />
                     <Item to="/admin/rooms/create" label="Create Room" />
-                    <Item to="/admin/rooms/101/bookings" label="Admin Room Bookings" />
                 </>
             )}
             <div className="text-xs uppercase text-gray-500 px-2 mt-4">

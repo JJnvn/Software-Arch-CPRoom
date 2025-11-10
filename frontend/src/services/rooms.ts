@@ -38,11 +38,6 @@ export async function transferBookingOwnership(bookingId: string, payload: { new
   return data;
 }
 
-export async function getAdminRoomBookings(roomId: string) {
-  const { data } = await api.get(`/admin/rooms/${roomId}/bookings`);
-  return data;
-}
-
 export async function createRoom(payload: { name: string; capacity?: number; features?: string[] }) {
   const { data } = await api.post('/rooms', payload);
   return data;
@@ -51,5 +46,15 @@ export async function createRoom(payload: { name: string; capacity?: number; fea
 export async function listRooms() {
   const { data } = await api.get('/rooms');
   return data as Array<{ id: string; name: string; capacity?: number; features?: string[] }>;
+}
+
+export async function getRoom(id: string) {
+  const { data } = await api.get(`/rooms/${id}`);
+  return data as { id: string; name: string; capacity?: number; features?: string[] };
+}
+
+export async function updateRoom(id: string, payload: { name?: string; capacity?: number; features?: string[] }) {
+  const { data } = await api.put(`/rooms/${id}`, payload);
+  return data;
 }
 

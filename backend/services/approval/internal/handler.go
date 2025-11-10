@@ -1,8 +1,12 @@
 package internal
 
 import (
+	"encoding/json"
+	"fmt"
+	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	pb "github.com/JJnvn/Software-Arch-CPRoom/backend/services/approval/proto"
 	"github.com/gofiber/fiber/v2"
@@ -30,7 +34,106 @@ func (h *ApprovalHandler) ListPending(c *fiber.Ctx) error {
 	if err != nil {
 		return translateError(c, err)
 	}
-	return c.JSON(resp)
+
+	// Enrich with room_name and user_name for frontend convenience
+	enriched := make([]fiber.Map, 0, len(resp.GetPending()))
+	for _, p := range resp.GetPending() {
+		roomName := fetchRoomName(p.GetRoomId())
+		userName := fetchUserName(p.GetUserId())
+		enriched = append(enriched, fiber.Map{
+			"booking_id": p.GetBookingId(),
+			"room_id":    p.GetRoomId(),
+			"user_id":    p.GetUserId(),
+			"start":      p.GetStart(),
+			"end":        p.GetEnd(),
+			"room_name":  roomName,
+			"user_name":  userName,
+		})
+	}
+	return c.JSON(fiber.Map{"pending": enriched})
+}
+
+// ListApproved returns approved bookings enriched with room_name and user_name.
+func (h *ApprovalHandler) ListApproved(c *fiber.Ctx) error {
+    if _, err := requireAdminClaims(c); err != nil {
+        return respondError(c, err)
+    }
+
+    rows, err := h.service.ListApproved()
+    if err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+    }
+
+    roomIDs := make([]string, 0, len(rows))
+    userIDs := make([]string, 0, len(rows))
+    for _, r := range rows {
+        roomIDs = append(roomIDs, r.RoomID.String())
+        userIDs = append(userIDs, r.UserID.String())
+    }
+    roomNames, _ := h.service.GetRoomNames(roomIDs)
+    userNames, _ := h.service.GetUserNames(userIDs)
+
+    items := make([]fiber.Map, 0, len(rows))
+    for _, r := range rows {
+        items = append(items, fiber.Map{
+            "booking_id": r.ID.String(),
+            "room_id":    r.RoomID.String(),
+            "user_id":    r.UserID.String(),
+            "start":      fiber.Map{"seconds": r.StartTime.Unix()},
+            "end":        fiber.Map{"seconds": r.EndTime.Unix()},
+            "room_name":  strings.TrimSpace(roomNames[r.RoomID.String()]),
+            "user_name":  strings.TrimSpace(userNames[r.UserID.String()]),
+        })
+    }
+    return c.JSON(fiber.Map{"approved": items})
+}
+
+func fetchRoomName(roomID string) string {
+	if roomID == "" {
+		return ""
+	}
+	client := &http.Client{Timeout: 2 * time.Second}
+	url := fmt.Sprintf("http://room-service:8082/rooms/%s", roomID)
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if resp != nil {
+			resp.Body.Close()
+		}
+		return ""
+	}
+	defer resp.Body.Close()
+	var body struct {
+		Name string `json:"name"`
+	}
+	_ = json.NewDecoder(resp.Body).Decode(&body)
+	return strings.TrimSpace(body.Name)
+}
+
+func fetchUserName(userID string) string {
+	if userID == "" {
+		return ""
+	}
+	client := &http.Client{Timeout: 2 * time.Second}
+	url := fmt.Sprintf("http://auth-service:8081/auth/users/%s", userID)
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	// Use service token if configured
+	if tok := strings.TrimSpace(os.Getenv("SERVICE_API_TOKEN")); tok != "" {
+		req.Header.Set("X-Service-Token", tok)
+	}
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if resp != nil {
+			resp.Body.Close()
+		}
+		return ""
+	}
+	defer resp.Body.Close()
+	var body struct {
+		Name string `json:"name"`
+	}
+	_ = json.NewDecoder(resp.Body).Decode(&body)
+	return strings.TrimSpace(body.Name)
 }
 
 func (h *ApprovalHandler) Approve(c *fiber.Ctx) error {

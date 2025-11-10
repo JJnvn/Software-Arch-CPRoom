@@ -58,6 +58,7 @@ func main() {
 	go func() {
 		app := fiber.New()
 		app.Get("/approvals/pending", handler.ListPending)
+		app.Get("/approvals/approved", handler.ListApproved)
 		app.Post("/approvals/:booking_id/approve", handler.Approve)
 		app.Post("/approvals/:booking_id/deny", handler.Deny)
 		app.Get("/approvals/:booking_id/audit", handler.AuditTrail)

@@ -1,7 +1,7 @@
 import api from './api';
 
-export async function getNotificationHistory() {
-  const { data } = await api.get('/notifications');
+export async function getNotificationHistory(userId: string) {
+  const { data } = await api.get(`/notifications/history/${encodeURIComponent(userId)}`);
   return data;
 }
 
