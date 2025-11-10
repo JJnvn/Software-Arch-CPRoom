@@ -141,10 +141,6 @@ func (h *AuthHandler) GetUserByID(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) UpdateUserByID(c *fiber.Ctx) error {
-	if err := h.enforceServiceToken(c); err != nil {
-		return err
-	}
-
 	id := c.Params("id")
 	if id == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "id is required"})
