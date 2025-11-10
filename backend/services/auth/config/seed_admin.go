@@ -3,16 +3,16 @@ package config
 import (
 	"log"
 
-	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/auth/models"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 const (
+	defaultAdminID       = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 	defaultAdminEmail    = "admin@admin.com"
 	defaultAdminPassword = "Secured1"
 	defaultAdminName     = "System Admin"
+	defaultAdminRole     = "admin"
 )
 
 func SeedAdmin(db *gorm.DB) {
@@ -21,61 +21,28 @@ func SeedAdmin(db *gorm.DB) {
 		return
 	}
 
+	// Hash password
 	hashed, err := bcrypt.GenerateFromPassword([]byte(defaultAdminPassword), bcrypt.DefaultCost)
 	if err != nil {
 		log.Printf("Failed to hash admin password: %v", err)
 		return
 	}
 
-	admin := models.User{
-		Name:     defaultAdminName,
-		Email:    defaultAdminEmail,
-		Password: string(hashed),
-		Role:     models.ADMIN,
-	}
+	// Raw SQL insert with fixed ID
+	sql := `
+		INSERT INTO users (id, name, email, password, role)
+		VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT (id) DO UPDATE
+		SET name = EXCLUDED.name,
+		    email = EXCLUDED.email,
+		    password = EXCLUDED.password,
+		    role = EXCLUDED.role;
+	`
 
-	result := db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "email"}},
-		DoNothing: true,
-	}).Create(&admin)
-
-	if result.Error != nil {
-		log.Printf("Failed to ensure default admin: %v", result.Error)
+	if err := db.Exec(sql, defaultAdminID, defaultAdminName, defaultAdminEmail, string(hashed), defaultAdminRole).Error; err != nil {
+		log.Printf("Failed to seed default admin: %v", err)
 		return
 	}
 
-	if result.RowsAffected > 0 {
-		log.Println("Default admin created: admin@admin.com / Secured1")
-		return
-	}
-
-	var existing models.User
-	if err := db.Where("email = ?", defaultAdminEmail).First(&existing).Error; err != nil {
-		log.Printf("Failed to load existing admin for update: %v", err)
-		return
-	}
-
-	updates := map[string]any{}
-
-	if existing.Name == "" {
-		updates["name"] = defaultAdminName
-	}
-	if existing.Role != models.ADMIN {
-		updates["role"] = models.ADMIN
-	}
-	if bcrypt.CompareHashAndPassword([]byte(existing.Password), []byte(defaultAdminPassword)) != nil {
-		updates["password"] = string(hashed)
-	}
-
-	if len(updates) == 0 {
-		log.Println("Default admin already present")
-		return
-	}
-
-	if err := db.Model(&existing).Updates(updates).Error; err != nil {
-		log.Printf("Failed to refresh default admin: %v", err)
-		return
-	}
-
-	log.Println("Default admin refreshed to expected defaults")
+	log.Println("Default admin seeded or updated with fixed ID: admin@admin.com / Secured1")
 }

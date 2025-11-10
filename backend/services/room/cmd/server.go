@@ -6,11 +6,14 @@ import (
 
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/room/config"
 	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/room/internal"
+	"github.com/JJnvn/Software-Arch-CPRoom/backend/services/room/models"
 	"github.com/gofiber/fiber/v2"
 )
 
 func main() {
 	db := config.ConnectDB()
+	db.AutoMigrate(&models.Room{})
+	config.SeedDefaultRooms(db)
 
 	roomRepo := internal.NewRoomRepository(db)
 	roomService := internal.NewRoomService(roomRepo)
