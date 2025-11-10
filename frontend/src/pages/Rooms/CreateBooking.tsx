@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 import * as rooms from "@/services/rooms";
 
 export default function CreateBooking() {
-    const [roomId, setRoomId] = useState("");
+    const [roomName, setRoomName] = useState("");
     const [date, setDate] = useState("");
     const [time, setTime] = useState("");
     const [duration, setDuration] = useState<number | "">("");
@@ -10,7 +10,14 @@ export default function CreateBooking() {
 
     async function onSubmit(e: FormEvent) {
         e.preventDefault();
-        if (!roomId || !date || !time || !duration) return;
+        if (!roomName || !date || !time || !duration) return;
+
+        const token = localStorage.getItem('AUTH_TOKEN');
+        if (!token) {
+            setStatus("Please log in to create a booking");
+            setTimeout(() => setStatus(null), 2000);
+            return;
+        }
 
         // parse auth_user from localStorage
         const userJson = localStorage.getItem("auth_user");
@@ -26,9 +33,25 @@ export default function CreateBooking() {
             startDateTime.getTime() + Number(duration) * 60000
         );
 
+        // resolve room name to id
+        let roomId: string | null = null;
+        try {
+            const allRooms = await rooms.listRooms();
+            const match = allRooms.find(r => (r.name || '').toLowerCase() === roomName.trim().toLowerCase());
+            if (match) roomId = match.id;
+        } catch (e) {
+            // ignore here; handled below
+        }
+
+        if (!roomId) {
+            setStatus("Room not found");
+            setTimeout(() => setStatus(null), 2000);
+            return;
+        }
+
         // create payload
         const payload = {
-            user_id: user.id, // use parsed id
+            user_id: user.id,
             room_id: roomId,
             start_time: startDateTime.toISOString(),
             end_time: endDateTime.toISOString(),
@@ -53,12 +76,12 @@ export default function CreateBooking() {
                     <div className="text-green-700 text-sm">{status}</div>
                 )}
                 <div>
-                    <label className="block text-sm mb-1">Room ID</label>
+                    <label className="block text-sm mb-1">Room Name</label>
                     <input
-                        value={roomId}
-                        onChange={(e) => setRoomId(e.target.value)}
+                        value={roomName}
+                        onChange={(e) => setRoomName(e.target.value)}
                         className="w-full border rounded px-3 py-2"
-                        placeholder="e.g., 101"
+                        placeholder="e.g., Phoenix"
                         required
                     />
                 </div>

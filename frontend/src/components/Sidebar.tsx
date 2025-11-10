@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 function Item({ to, label }: { to: string; label: string }) {
     return (
@@ -16,6 +17,9 @@ function Item({ to, label }: { to: string; label: string }) {
 }
 
 export default function Sidebar() {
+    const { user } = useAuth();
+    const role = (user?.role || '').toUpperCase();
+    const isPrivileged = role === 'ADMIN' || role === 'STAFF';
     return (
         <aside className="w-60 bg-white border-r p-4 space-y-2">
             <div className="text-xs uppercase text-gray-500 px-2">User</div>
@@ -27,14 +31,16 @@ export default function Sidebar() {
             </div>
             <Item to="/rooms/search" label="Search Rooms" />
             <Item to="/bookings/create" label="Create Booking" />
-            <div className="text-xs uppercase text-gray-500 px-2 mt-4">
-                Staff
-            </div>
-            <Item to="/approvals/pending" label="Pending Approvals" />
-            <div className="text-xs uppercase text-gray-500 px-2 mt-4">
-                Admin
-            </div>
-            <Item to="/admin/rooms/101/bookings" label="Admin Room Bookings" />
+            {isPrivileged && (
+                <>
+                    <div className="text-xs uppercase text-gray-500 px-2 mt-4">
+                        Staff
+                    </div>
+                    <Item to="/approvals/pending" label="Pending Approvals" />
+                    <Item to="/approvals/approved" label="Approved Bookings" />
+                    <Item to="/admin/rooms/create" label="Create Room" />
+                </>
+            )}
             <div className="text-xs uppercase text-gray-500 px-2 mt-4">
                 Notifications
             </div>

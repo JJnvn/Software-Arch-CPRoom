@@ -20,12 +20,31 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Basic persistence using localStorage for demo only
+    // Restore session: prefer persisted user; else try token -> profile
     const raw = localStorage.getItem('auth_user');
-    if (raw) setUser(JSON.parse(raw));
+    if (raw) {
+      setUser(JSON.parse(raw));
+      setLoading(false);
+      return;
+    }
+    const token = localStorage.getItem('AUTH_TOKEN');
+    if (token) {
+      (async () => {
+        try {
+          const prof = await authApi.getProfile();
+          setUser({ id: prof.id, name: prof.name, email: prof.email, role: prof.role });
+        } catch (e) {
+          localStorage.removeItem('AUTH_TOKEN');
+        } finally {
+          setLoading(false);
+        }
+      })();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -53,7 +72,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     },
     logout: async () => {
-      await authApi.logout();
+      try { await authApi.logout(); } catch {}
+      localStorage.removeItem('AUTH_TOKEN');
       setUser(null);
     }
   }), [user, loading]);
