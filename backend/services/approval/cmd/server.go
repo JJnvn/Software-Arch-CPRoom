@@ -21,7 +21,7 @@ func main() {
 
 	db := config.ConnectDB()
 	db.AutoMigrate(&approvalmodels.ApprovalAudit{})
-	config.SeedApprovalBookings(db)
+	config.SeedApprovalAudits(db)
 
 	repo := internal.NewApprovalRepository(db)
 	var publisher events.Publisher

@@ -7,54 +7,47 @@ import (
 	"gorm.io/gorm"
 )
 
-func SeedApprovalBookings(db *gorm.DB) {
+func SeedApprovalAudits(db *gorm.DB) {
 	if db == nil {
-		log.Println("SeedApprovalBookings skipped: database handle is nil")
+		log.Println("SeedApprovalAudits skipped: database handle is nil")
 		return
 	}
 
-	// Fixed user ID (replace with your seeded admin/user if needed)
-	userID := "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+	// Fixed staff ID (replace with your admin/staff UUID)
+	staffID := "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 
-	// Fixed rooms (must match rooms seeded earlier)
-	roomIDs := []string{
-		"11111111-1111-1111-1111-111111111111",
-		"22222222-2222-2222-2222-222222222222",
-		"33333333-3333-3333-3333-333333333333",
+	// Fixed booking IDs (from your seeded bookings)
+	bookingIDs := []string{
+		"aaaa1111-1111-1111-1111-111111111111", // confirmed booking
+		"aaaa2222-2222-2222-2222-222222222222", // pending booking
+		"aaaa3333-3333-3333-3333-333333333333", // pending booking
 	}
 
-	// Booking times
-	now := time.Now()
-	start1 := now.Add(24 * time.Hour).Format("2006-01-02 15:04:05")
-	end1 := now.Add(26 * time.Hour).Format("2006-01-02 15:04:05")
-
-	start2 := now.Add(48 * time.Hour).Format("2006-01-02 15:04:05")
-	end2 := now.Add(50 * time.Hour).Format("2006-01-02 15:04:05")
-
-	start3 := now.Add(72 * time.Hour).Format("2006-01-02 15:04:05")
-	end3 := now.Add(74 * time.Hour).Format("2006-01-02 15:04:05")
+	// Timestamps
+	now := time.Now().Format("2006-01-02 15:04:05")
 
 	queries := []string{
-		// Confirmed booking
-		`INSERT INTO bookings (id, user_id, room_id, start_time, end_time, status, created_at, updated_at)
-		 VALUES ('aaaa1111-1111-1111-1111-111111111111', '` + userID + `', '` + roomIDs[0] + `', '` + start1 + `', '` + end1 + `', 'confirmed', NOW(), NOW())
+		// Approved audit for confirmed booking
+		`INSERT INTO approval_audits (id, booking_id, staff_id, action, reason, created_at)
+		 VALUES ('audit1111-1111-1111-1111-111111111111', '` + bookingIDs[0] + `', '` + staffID + `', 'approved', 'Automatically approved', '` + now + `')
 		 ON CONFLICT (id) DO NOTHING;`,
 
-		// Pending bookings
-		`INSERT INTO bookings (id, user_id, room_id, start_time, end_time, status, created_at, updated_at)
-		 VALUES ('aaaa2222-2222-2222-2222-222222222222', '` + userID + `', '` + roomIDs[1] + `', '` + start2 + `', '` + end2 + `', 'pending', NOW(), NOW())
+		// Denied audit for pending booking
+		`INSERT INTO approval_audits (id, booking_id, staff_id, action, reason, created_at)
+		 VALUES ('audit2222-2222-2222-2222-222222222222', '` + bookingIDs[1] + `', '` + staffID + `', 'denied', 'Pending review', '` + now + `')
 		 ON CONFLICT (id) DO NOTHING;`,
 
-		`INSERT INTO bookings (id, user_id, room_id, start_time, end_time, status, created_at, updated_at)
-		 VALUES ('aaaa3333-3333-3333-3333-333333333333', '` + userID + `', '` + roomIDs[2] + `', '` + start3 + `', '` + end3 + `', 'pending', NOW(), NOW())
+		// Another denied audit for pending booking
+		`INSERT INTO approval_audits (id, booking_id, staff_id, action, reason, created_at)
+		 VALUES ('audit3333-3333-3333-3333-333333333333', '` + bookingIDs[2] + `', '` + staffID + `', 'denied', 'Pending review', '` + now + `')
 		 ON CONFLICT (id) DO NOTHING;`,
 	}
 
 	for _, q := range queries {
 		if err := db.Exec(q).Error; err != nil {
-			log.Printf("Failed to insert approval booking: %v", err)
+			log.Printf("Failed to insert approval audit: %v", err)
 		}
 	}
 
-	log.Println("Seeded 3 approval bookings successfully (or already existed).")
+	log.Println("Seeded 3 approval audits successfully (or already existed).")
 }
