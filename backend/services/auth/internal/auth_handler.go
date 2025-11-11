@@ -21,22 +21,40 @@ func NewAuthHandler(service *AuthService) *AuthHandler {
 }
 
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
-	var req struct {
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-		Role     string `json:"role"`
-	}
+    var req struct {
+        Name     string `json:"name"`
+        Email    string `json:"email"`
+        Password string `json:"password"`
+        Role     string `json:"role"`
+    }
 
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request"})
-	}
+    if err := c.BodyParser(&req); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request"})
+    }
 
-	if err := h.service.Register(req.Name, req.Email, req.Password, models.USER); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
-	}
+    if err := h.service.Register(req.Name, req.Email, req.Password, models.USER); err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+    }
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "user registered"})
+    // Auto-login after successful registration: issue JWT, set cookie, return user+token
+    user, token, err := h.service.Login(req.Email, req.Password)
+    if err != nil {
+        // Fallback: user was created but login failed for some reason
+        return c.Status(fiber.StatusCreated).JSON(fiber.Map{"message": "user registered"})
+    }
+
+    h.setAuthCookie(c, token)
+
+    return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+        "message": "user registered",
+        "token":   token,
+        "user": fiber.Map{
+            "id":    user.ID,
+            "name":  user.Name,
+            "email": user.Email,
+            "role":  user.Role,
+        },
+    })
 }
 
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
