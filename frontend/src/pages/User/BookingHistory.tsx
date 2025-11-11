@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import BookingCard from '@/components/BookingCard';
 import * as auth from '@/services/auth';
 import { useNavigate } from 'react-router-dom';
+import { formatDateTime } from '@/utils/dateFormat';
 
 export default function BookingHistory() {
   const [bookings, setBookings] = useState<any[]>([]);
@@ -31,14 +32,6 @@ export default function BookingHistory() {
     setAlert({ type, message });
     setTimeout(() => setAlert(null), 5000);
   }
-
-  const formatDateTime = (isoString?: string) => {
-    if (!isoString) return { date: '—', time: '—' };
-    const d = new Date(isoString);
-    const date = d.toISOString().slice(0, 10);
-    const time = d.toISOString().slice(11, 16);
-    return { date, time };
-  };
 
   const handleCancel = async (id: string, roomName: string) => {
     if (!confirm(`Are you sure you want to cancel the booking for ${roomName}?\n\nThis action cannot be undone.`)) return;

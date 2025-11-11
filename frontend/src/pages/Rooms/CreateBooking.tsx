@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as rooms from "@/services/rooms";
+import { formatDate } from "@/utils/dateFormat";
 
 export default function CreateBooking() {
     const navigate = useNavigate();
@@ -11,6 +12,16 @@ export default function CreateBooking() {
     const [status, setStatus] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Validate and round time to nearest 15-minute interval
+    const validateAndRoundTime = (timeValue: string): string => {
+        if (!timeValue) return timeValue;
+        const [hours, minutes] = timeValue.split(':').map(Number);
+        const roundedMinutes = Math.round(minutes / 15) * 15;
+        const finalMinutes = roundedMinutes === 60 ? 0 : roundedMinutes;
+        const finalHours = roundedMinutes === 60 ? (hours + 1) % 24 : hours;
+        return `${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
+    };
 
     async function onSubmit(e: FormEvent) {
         e.preventDefault();
@@ -164,7 +175,7 @@ export default function CreateBooking() {
                             }}
                             type="date"
                             className="input"
-                            min={new Date().toISOString().slice(0, 10)}
+                            min={formatDate(new Date().toISOString())}
                             disabled={isSubmitting}
                             required
                         />
@@ -177,7 +188,7 @@ export default function CreateBooking() {
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    Start Time
+                                    Start Time <span className="text-xs text-gray-500">(15-min intervals)</span>
                                 </span>
                             </label>
                             <input
@@ -186,6 +197,8 @@ export default function CreateBooking() {
                                     setTime(e.target.value);
                                     setError(null);
                                 }}
+                                onBlur={(e) => setTime(validateAndRoundTime(e.target.value))}
+                                step="900"
                                 type="time"
                                 className="input"
                                 disabled={isSubmitting}

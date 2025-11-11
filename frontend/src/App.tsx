@@ -12,7 +12,6 @@ import RescheduleBooking from "./pages/Bookings/RescheduleBooking";
 import TransferBooking from "./pages/Bookings/TransferBooking";
 import RoomSchedule from "./pages/Rooms/RoomSchedule";
 import SearchAndBook from "./pages/Rooms/SearchAndBook";
-import EditBooking from "./pages/Rooms/EditBooking";
 
 import AdminCreateRoom from "./pages/Admin/CreateRoom";
 import EditRoom from "./pages/Admin/EditRoom";
@@ -74,7 +73,7 @@ export default function App() {
                 <Route path="/rooms/search" element={<SearchAndBook />} />
                 <Route path="/rooms/:id/schedule" element={<RoomSchedule />} />
                 <Route path="/booking-history" element={<BookingHistory />} />
-                <Route path="/bookings/:id/edit" element={<EditBooking />} />
+                <Route path="/bookings/:id/edit" element={<RescheduleBooking />} />
                 <Route path="/bookings/:id/transfer" element={<TransferBooking />} />
 
                 {/* Notifications */}

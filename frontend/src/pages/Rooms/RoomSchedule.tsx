@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import * as rooms from '@/services/rooms';
+import { formatDate as formatDateUtil } from '@/utils/dateFormat';
 
 interface Booking {
   booking_id: string;
@@ -19,7 +20,7 @@ interface RoomScheduleData {
 
 export default function RoomSchedule() {
   const { id } = useParams();
-  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState<string>(formatDateUtil(new Date().toISOString()));
   const [scheduleData, setScheduleData] = useState<RoomScheduleData | null>(null);
   const [loading, setLoading] = useState(false);
 

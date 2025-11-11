@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as auth from '@/services/auth';
+import { formatDate, formatTime } from '@/utils/dateFormat';
 
 export default function RescheduleBooking() {
   const { id } = useParams();
@@ -13,6 +14,16 @@ export default function RescheduleBooking() {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Validate and round time to nearest 15-minute interval
+  const validateAndRoundTime = (timeValue: string): string => {
+    if (!timeValue) return timeValue;
+    const [hours, minutes] = timeValue.split(':').map(Number);
+    const roundedMinutes = Math.round(minutes / 15) * 15;
+    const finalMinutes = roundedMinutes === 60 ? 0 : roundedMinutes;
+    const finalHours = roundedMinutes === 60 ? (hours + 1) % 24 : hours;
+    return `${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
+  };
+
   useEffect(() => {
     (async () => {
       try {
@@ -20,11 +31,10 @@ export default function RescheduleBooking() {
         const found = history.find((b: any) => b.booking_id === id);
         if (found) {
           setBooking(found);
-          const start = new Date(found.start_time);
-          setStartDate(start.toISOString().slice(0, 10));
-          setStartTime(start.toISOString().slice(11, 16));
-          const end = new Date(found.end_time);
-          setEndTime(end.toISOString().slice(11, 16));
+          // Use local timezone for display
+          setStartDate(formatDate(found.start_time));
+          setStartTime(formatTime(found.start_time));
+          setEndTime(formatTime(found.end_time));
         } else {
           setStatus('Booking not found');
         }
@@ -53,9 +63,13 @@ export default function RescheduleBooking() {
     setStatus('Rescheduling booking...');
     
     try {
+      // Create Date objects in local timezone and convert to ISO string
+      const startDateTime = new Date(`${startDate}T${startTime}`);
+      const endDateTime = new Date(`${startDate}T${endTime}`);
+      
       await auth.rescheduleBooking(id, {
-        start_time: `${startDate}T${startTime}:00Z`,
-        end_time: `${startDate}T${endTime}:00Z`,
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
       });
       setStatus('Booking rescheduled successfully!');
       setTimeout(() => navigate('/booking-history'), 2000);
@@ -144,7 +158,7 @@ export default function RescheduleBooking() {
                   setError('');
                 }}
                 className="input"
-                min={new Date().toISOString().slice(0, 10)}
+                min={formatDate(new Date().toISOString())}
                 disabled={isSubmitting}
                 required
               />
@@ -152,7 +166,9 @@ export default function RescheduleBooking() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold mb-2">Start Time</label>
+                <label className="block text-sm font-semibold mb-2">
+                  Start Time <span className="text-xs text-gray-500">(15-min intervals)</span>
+                </label>
                 <input
                   type="time"
                   value={startTime}
@@ -160,13 +176,17 @@ export default function RescheduleBooking() {
                     setStartTime(e.target.value);
                     setError('');
                   }}
+                  onBlur={(e) => setStartTime(validateAndRoundTime(e.target.value))}
+                  step="900"
                   className="input"
                   disabled={isSubmitting}
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-2">End Time</label>
+                <label className="block text-sm font-semibold mb-2">
+                  End Time <span className="text-xs text-gray-500">(15-min intervals)</span>
+                </label>
                 <input
                   type="time"
                   value={endTime}
@@ -174,6 +194,8 @@ export default function RescheduleBooking() {
                     setEndTime(e.target.value);
                     setError('');
                   }}
+                  onBlur={(e) => setEndTime(validateAndRoundTime(e.target.value))}
+                  step="900"
                   className="input"
                   disabled={isSubmitting}
                   required

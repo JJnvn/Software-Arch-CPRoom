@@ -142,14 +142,26 @@ export default function SearchAndBook() {
         weekday: 'short', 
         month: 'short', 
         day: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit' 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true
       }),
       end: end.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true
       }),
     };
+  };
+
+  // Validate and round time to nearest 15-minute interval
+  const validateAndRoundTime = (timeValue: string): string => {
+    if (!timeValue) return timeValue;
+    const [hours, minutes] = timeValue.split(':').map(Number);
+    const roundedMinutes = Math.round(minutes / 15) * 15;
+    const finalMinutes = roundedMinutes === 60 ? 0 : roundedMinutes;
+    const finalHours = roundedMinutes === 60 ? (hours + 1) % 24 : hours;
+    return `${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
   };
 
   const timeInfo = getStartEndTime();
@@ -213,27 +225,38 @@ export default function SearchAndBook() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Start Time <span className="text-xs text-gray-500">(15-min intervals)</span>
+              </label>
               <input
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
+                onBlur={(e) => setTime(validateAndRoundTime(e.target.value))}
+                step="900"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Duration <span className="text-xs text-gray-500">(15-min intervals)</span>
+              </label>
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >
+                <option value={15}>15 minutes</option>
                 <option value={30}>30 minutes</option>
+                <option value={45}>45 minutes</option>
                 <option value={60}>1 hour</option>
-                <option value={90}>1.5 hours</option>
+                <option value={75}>1 hour 15 minutes</option>
+                <option value={90}>1 hour 30 minutes</option>
+                <option value={105}>1 hour 45 minutes</option>
                 <option value={120}>2 hours</option>
+                <option value={150}>2 hours 30 minutes</option>
                 <option value={180}>3 hours</option>
                 <option value={240}>4 hours</option>
                 <option value={480}>8 hours (Full day)</option>
