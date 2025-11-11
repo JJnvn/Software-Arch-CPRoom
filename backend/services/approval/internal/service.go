@@ -15,36 +15,48 @@ import (
 )
 
 type ApprovalService struct {
-    repo      *ApprovalRepository
-    publisher events.Publisher
-    pb.UnimplementedApprovalServiceServer
+	repo      *ApprovalRepository
+	publisher events.Publisher
+	pb.UnimplementedApprovalServiceServer
 }
 
 func NewApprovalService(repo *ApprovalRepository, publisher events.Publisher) *ApprovalService {
-    return &ApprovalService{repo: repo, publisher: publisher}
+	return &ApprovalService{repo: repo, publisher: publisher}
 }
 
 func (s *ApprovalService) GetRoomNames(ids []string) (map[string]string, error) {
-    return s.repo.GetRoomNames(ids)
+	return s.repo.GetRoomNames(ids)
 }
 
 func (s *ApprovalService) GetUserNames(ids []string) (map[string]string, error) {
-    return s.repo.GetUserNames(ids)
+	return s.repo.GetUserNames(ids)
 }
 
 func (s *ApprovalService) ListApproved() ([]PendingBooking, error) {
-    return s.repo.ListApprovedBookings()
+	return s.repo.ListApprovedBookings()
 }
 
 func (s *ApprovalService) publishBookingEvent(ctx context.Context, booking *models.Booking, event string, metadata map[string]any) {
 	if s.publisher == nil || booking == nil {
 		return
 	}
+
+	// Fetch room name
+	roomID := booking.RoomID.String()
+	roomNames, err := s.repo.GetRoomNames([]string{roomID})
+	roomName := roomID // Fallback to room ID
+	if err == nil && len(roomNames) > 0 {
+		if name, ok := roomNames[roomID]; ok && name != "" {
+			roomName = name
+		}
+	}
+
 	payload := events.BookingEvent{
 		Event:     event,
 		BookingID: booking.ID.String(),
 		UserID:    booking.UserID.String(),
-		RoomID:    booking.RoomID.String(),
+		RoomID:    roomID,
+		RoomName:  roomName,
 		Status:    booking.Status,
 		StartTime: booking.StartTime,
 		EndTime:   booking.EndTime,

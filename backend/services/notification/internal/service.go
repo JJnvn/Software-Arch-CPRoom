@@ -212,13 +212,13 @@ func (s *NotificationService) FetchHistory(ctx context.Context, userID string, p
 
 	cursor, err := s.historyCol.Find(ctx, filter, opts)
 	if err != nil {
-		return nil, err
+		return []models.NotificationHistory{}, err
 	}
 	defer cursor.Close(ctx)
 
-	var history []models.NotificationHistory
+	history := make([]models.NotificationHistory, 0)
 	if err := cursor.All(ctx, &history); err != nil {
-		return nil, err
+		return []models.NotificationHistory{}, err
 	}
 
 	return history, nil

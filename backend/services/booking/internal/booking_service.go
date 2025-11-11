@@ -30,11 +30,20 @@ func (s *BookingService) publishBookingEvent(ctx context.Context, booking *model
 	if s.publisher == nil || booking == nil {
 		return
 	}
+
+	// Fetch room name
+	roomName, err := s.repo.GetRoomName(booking.RoomID)
+	if err != nil {
+		log.Printf("failed to fetch room name for room %s: %v", booking.RoomID, err)
+		roomName = booking.RoomID.String() // Fallback to room ID
+	}
+
 	payload := events.BookingEvent{
 		Event:     event,
 		BookingID: booking.ID.String(),
 		UserID:    booking.UserID.String(),
 		RoomID:    booking.RoomID.String(),
+		RoomName:  roomName,
 		Status:    booking.Status,
 		StartTime: booking.StartTime,
 		EndTime:   booking.EndTime,
@@ -147,7 +156,17 @@ func (s *BookingService) GetRoomSchedule(ctx context.Context, req *pb.GetRoomSch
 		return nil, status.Error(codes.InvalidArgument, "invalid room_id")
 	}
 
-	bookings, err := s.repo.GetRoomSchedule(roomID)
+	// Parse the date string (format: YYYY-MM-DD)
+	date := time.Now() // Default to today if not provided
+	if req.GetDate() != "" {
+		parsedDate, err := time.Parse("2006-01-02", req.GetDate())
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid date format, expected YYYY-MM-DD")
+		}
+		date = parsedDate
+	}
+
+	bookings, err := s.repo.GetRoomSchedule(roomID, date)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to load room schedule: %v", err)
 	}

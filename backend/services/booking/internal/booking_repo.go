@@ -129,14 +129,20 @@ func (r *BookingRepository) TransferBooking(id, newOwner uuid.UUID) error {
 	return nil
 }
 
-func (r *BookingRepository) GetRoomSchedule(roomID uuid.UUID) ([]models.Booking, error) {
+func (r *BookingRepository) GetRoomSchedule(roomID uuid.UUID, date time.Time) ([]models.Booking, error) {
 	var bookings []models.Booking
+
+	// Set the start and end of the day for the given date
+	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+	endOfDay := startOfDay.Add(24 * time.Hour)
+
 	err := r.db.Where("room_id = ?", roomID).
 		Where("status IN ?", []string{
 			models.StatusPending,
 			models.StatusConfirmed,
 			models.StatusExpired,
 		}).
+		Where("start_time < ? AND end_time > ?", endOfDay, startOfDay).
 		Order("start_time ASC").
 		Find(&bookings).Error
 	return bookings, err
@@ -156,6 +162,52 @@ func (r *BookingRepository) AdminListBookings(roomID uuid.UUID) ([]models.Bookin
 		Order("start_time ASC").
 		Find(&bookings).Error
 	return bookings, err
+}
+
+func (r *BookingRepository) GetBookingsByRoom(roomID uuid.UUID) ([]models.Booking, error) {
+	var bookings []models.Booking
+	err := r.db.Where("room_id = ?", roomID).
+		Order("start_time DESC").
+		Find(&bookings).Error
+	return bookings, err
+}
+
+func (r *BookingRepository) GetRoomBookingsByDate(roomID uuid.UUID, startOfDay, endOfDay time.Time) ([]models.Booking, error) {
+	var bookings []models.Booking
+	err := r.db.Where("room_id = ?", roomID).
+		Where("start_time >= ? AND start_time < ?", startOfDay, endOfDay).
+		Where("status IN ?", []string{models.StatusPending, models.StatusConfirmed}).
+		Order("start_time ASC").
+		Find(&bookings).Error
+	return bookings, err
+}
+
+func (r *BookingRepository) GetRoomName(roomID uuid.UUID) (string, error) {
+	var roomName string
+	err := r.db.Table("rooms").
+		Select("name").
+		Where("id = ?", roomID).
+		Scan(&roomName).Error
+	if err != nil {
+		return "", err
+	}
+	return roomName, nil
+}
+
+func (r *BookingRepository) GetUserIDByEmail(email string) (uuid.UUID, error) {
+	var userID string
+
+	err := r.db.Table("users").
+		Select("id").
+		Where("email = ?", email).
+		Scan(&userID).Error
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if userID == "" {
+		return uuid.Nil, ErrUserNotFound
+	}
+	return uuid.Parse(userID)
 }
 
 func (r *BookingRepository) SearchAvailableRooms(start, end time.Time, capacity, page, pageSize int) ([]RoomSearchResult, error) {

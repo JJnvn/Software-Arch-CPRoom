@@ -161,7 +161,7 @@ func (s *AuthService) GenerateJWT(user *models.User) (string, error) {
 			Subject:   user.ID,
 			Issuer:    issuer,
 			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(now.Add(7 * 24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
 		},
 	}
 

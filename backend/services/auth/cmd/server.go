@@ -42,6 +42,7 @@ func main() {
 	app.Get("/auth/github/callback", handler.GitHubCallback)
 
 	app.Get("/auth/my-profile", middleware.AuthMiddleware(service, models.USER, models.ADMIN), handler.MyProfile)
+	app.Put("/auth/profile", middleware.AuthMiddleware(service, models.USER, models.ADMIN), handler.UpdateProfile)
 	app.Get("/auth/logout", handler.Logout)
 	app.Get("/auth/users/:id", handler.GetUserByID)
 	app.Put("/auth/users/:id", handler.UpdateUserByID)

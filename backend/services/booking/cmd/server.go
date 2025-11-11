@@ -65,6 +65,10 @@ func main() {
 		app.Get("/rooms/search", handler.SearchRooms)
 		app.Get("/bookings/mine", handler.ListUserBookings)
 		app.Post("/bookings", handler.CreateBooking)
+		app.Post("/bookings/:id/cancel", handler.CancelBooking)
+		app.Put("/bookings/:id", handler.UpdateBooking)
+		app.Post("/bookings/:id/transfer", handler.TransferBooking)
+		app.Get("/admin/rooms/:id/bookings", handler.GetAdminRoomBookings)
 
 		log.Printf("Booking HTTP server running on :%s", httpPort)
 		if err := app.Listen(":" + httpPort); err != nil {

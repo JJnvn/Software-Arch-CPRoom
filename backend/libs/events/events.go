@@ -15,11 +15,12 @@ const (
 )
 
 const (
-	BookingCreatedEvent   = "booking.created"
-	BookingUpdatedEvent   = "booking.updated"
-	BookingCancelledEvent = "booking.cancelled"
-	BookingApprovedEvent  = "booking.approved"
-	BookingDeniedEvent    = "booking.denied"
+	BookingCreatedEvent     = "booking.created"
+	BookingUpdatedEvent     = "booking.updated"
+	BookingCancelledEvent   = "booking.cancelled"
+	BookingApprovedEvent    = "booking.approved"
+	BookingDeniedEvent      = "booking.denied"
+	BookingTransferredEvent = "booking.transferred"
 )
 
 // BookingEvent captures changes in the booking lifecycle that downstream services can react to.
@@ -28,6 +29,7 @@ type BookingEvent struct {
 	BookingID string         `json:"booking_id"`
 	UserID    string         `json:"user_id"`
 	RoomID    string         `json:"room_id"`
+	RoomName  string         `json:"room_name"`
 	Status    string         `json:"status"`
 	StartTime time.Time      `json:"start_time"`
 	EndTime   time.Time      `json:"end_time"`
